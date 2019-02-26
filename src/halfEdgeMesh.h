@@ -353,6 +353,15 @@ class Halfedge : public HalfedgeElement {
  public:
   HalfedgeIter& twin() { return _twin; }  ///< access the twin half edge
   HalfedgeIter& next() { return _next; }  ///< access the next half edge
+  HalfedgeIter prev() {                   ///< access the prev half edge
+    HalfedgeIter& next_it = this->next();
+    HalfedgeIter cur_it;
+    do {
+      cur_it = next_it;
+      next_it = next_it->next();
+    } while (next_it->next() != _next);
+    return cur_it;
+  }
   VertexIter& vertex() {
     return _vertex;
   }                                   ///< access the vertex in the half edge
