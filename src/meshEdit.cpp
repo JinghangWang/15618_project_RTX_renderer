@@ -21,10 +21,18 @@ VertexIter HalfedgeMesh::splitEdge(EdgeIter e0) {
 }
 
 VertexIter HalfedgeMesh::collapseEdge(EdgeIter e) {
-  // TODO: (meshEdit)
-  // This method should collapse the given edge and return an iterator to
-  // the new vertex created by the collapse.
+  // return collapsed vertex iterator
 
+  // Vector3D center = e->centroid();
+  // collect edges "from" both endpoints
+  // assign edges/vertices
+  // check whether the resulting neighbor faces are polygons
+    // if yes, update halfedge of neighboring faces
+    // if no, remove neightboring faces
+    // note if boundaryface, may also need to remove from the HalfedgeMesh::boundaries
+    // deleteBoundary()
+    // deleteVertex(), etc
+  // remove two endpoints, two halfedges and the edge
   showError("collapseEdge() not implemented.");
   return VertexIter();
 }
