@@ -4,6 +4,10 @@
 #include "mutablePriorityQueue.h"
 #include "error_dialog.h"
 
+#include <sstream>
+#include <string>
+#include <iostream>
+
 namespace CMU462 {
 
 VertexIter HalfedgeMesh::splitEdge(EdgeIter e0) {
@@ -379,6 +383,7 @@ FaceIter HalfedgeMesh::bevelEdge(EdgeIter e) {
 // TODO This method should replace the face f with an additional, inset face
 // (and ring of faces around it), corresponding to a bevel operation.
 FaceIter HalfedgeMesh::bevelFace(FaceIter f) {
+  if (f->isBoundary()) return f; // if on boundary, return
   vector<HalfedgeIter> orig_halfedges, inner_halfedges, outer_halfedges;
   vector<HalfedgeIter> diag_halfedges_from, diag_halfedges_to; // diagonal halfedges from or to new vertices
   vector<VertexIter> inner_vertices, outer_vertices;
@@ -388,16 +393,17 @@ FaceIter HalfedgeMesh::bevelFace(FaceIter f) {
   HalfedgeIter cur_halfedge = f->halfedge();
   do {
     orig_halfedges.push_back(cur_halfedge);
-    inner_vertices.push_back(cur_halfedge->vertex());
+    outer_vertices.push_back(cur_halfedge->vertex());
+    cur_halfedge = cur_halfedge->next();
   } while (cur_halfedge != f->halfedge());
-  auto num_edges = halfedges.size();
+  int num_edges = orig_halfedges.size();
 
   // allocate new vertices, ring of faces, ring of edges, diagonal edges and halfedges
-  for (auto i = 0; i < num_edges; ++i) {
-    bool is_boundary = orig_halfedges[i]->isBoundary();
-    faces.push_back(newFace(is_boundary));
-    outer_vertices.push_back(newVertex());
+  for (int i = 0; i < num_edges; ++i) {
+    faces.push_back(newFace());
+    inner_vertices.push_back(newVertex());
     ring_edges.push_back(newEdge());
+    diag_edges.push_back(newEdge());
     inner_halfedges.push_back(newHalfedge());
     outer_halfedges.push_back(newHalfedge());
     diag_halfedges_from.push_back(newHalfedge());
@@ -405,58 +411,58 @@ FaceIter HalfedgeMesh::bevelFace(FaceIter f) {
   }
 
   // construct connectivity
-  for (auto i = 0; i< num_edges; ++i) {
-    auto idx_next = (i + num_edges + 1) % num_edges;
-    auto idx_prev = (i + num_edges - 1) % num_edges;
+  for (int i = 0; i < num_edges; ++i) {
+    int idx_next = (i + 1) % num_edges;
+    int idx_prev = (i + num_edges - 1) % num_edges;
     // collect
-    FaceIter& ring_face = faces[i],
-              prev_ring_face = faces[idx_prev];
-    VertexIter& inner_vertex = inner_vertices[i],
-                outer_vertex = outer_vertices[i],
-                next_inner_vertex = inner_vertices[idx_next];
-    HalfedgeIter& outer_halfedge = outer_halfedges[i],
-                  inner_halfedge = inner_halfedges[i],
-                  prev_inner_halfedge = inner_halfedges[idx_prev],
-                  prev_orig_halfedge = orig_halfedges[idx_prev],
-                  orig_halfedge = orig_halfedges[i],
-                  diag_halfedge_from = diag_halfedges_from[i],
-                  diag_halfedge_to = diag_halfedges_to[i],
-                  next_diag_halfedge_from = diag_halfedges_from[idx_next];
-    EdgeIter& diag_edge = diag_edges[i],
-              ring_edge = ring_edges[i],
-              orig_edge = orig_halfedge->edge();
+    FaceIter& ring_face = faces[i];
+    FaceIter& prev_ring_face = faces[idx_prev];
+    VertexIter& inner_vertex = inner_vertices[i];
+    VertexIter& outer_vertex = outer_vertices[i];
+    VertexIter& next_inner_vertex = inner_vertices[idx_next];
+    HalfedgeIter& outer_halfedge = outer_halfedges[i];
+    HalfedgeIter& inner_halfedge = inner_halfedges[i];
+    HalfedgeIter& prev_outer_halfedge = outer_halfedges[idx_prev];
+    HalfedgeIter& next_inner_halfedge = inner_halfedges[idx_next];
+    HalfedgeIter& orig_halfedge = orig_halfedges[i];
+    HalfedgeIter& diag_halfedge_from = diag_halfedges_from[i];
+    HalfedgeIter& diag_halfedge_to = diag_halfedges_to[i];
+    HalfedgeIter& next_diag_halfedge_to = diag_halfedges_to[idx_next];
+    EdgeIter& diag_edge = diag_edges[i];
+    EdgeIter& ring_edge = ring_edges[i];
+    EdgeIter& orig_edge = orig_halfedge->edge();
 
     // assign
     // HALFEDGE
-    outer_halfedge->next() = next_diag_halfedge_from;
+    outer_halfedge->next() = diag_halfedge_from;
     outer_halfedge->twin() = inner_halfedge;
-    outer_halfedge->vertex() = inner_vertex;
+    outer_halfedge->vertex() = next_inner_vertex;
     outer_halfedge->edge() = ring_edge;
     outer_halfedge->face() = ring_face;
-    inner_halfedge->next() = prev_inner_halfedge;
+    inner_halfedge->next() = next_inner_halfedge;
     inner_halfedge->twin() = outer_halfedge;
-    inner_halfedge->vertex() = next_inner_vertex;
+    inner_halfedge->vertex() = inner_vertex;
     inner_halfedge->edge() = ring_edge;
     inner_halfedge->face() = f;
-    diag_halfedge_from->next() = prev_orig_halfedge;
+    diag_halfedge_from->next() = orig_halfedge;
     diag_halfedge_from->twin() = diag_halfedge_to;
     diag_halfedge_from->vertex() = inner_vertex;
     diag_halfedge_from->edge() = diag_edge;
-    diag_halfedge_from->face() = prev_ring_face;
-    diag_halfedge_to->next() = outer_halfedge;
+    diag_halfedge_from->face() = ring_face;
+    diag_halfedge_to->next() = prev_outer_halfedge;
     diag_halfedge_to->twin() = diag_halfedge_from;
     diag_halfedge_to->vertex() = outer_vertex;
     diag_halfedge_to->edge() = diag_edge;
-    diag_halfedge_to->face() = ring_face;
-    orig_halfedge->next() = diag_halfedge_to;
-    orig_halfedge->twin() = orig_halfedge->next(); // same
-    orig_halfedge->vertex() = orig_halfedge->vertex(); // same
+    diag_halfedge_to->face() = prev_ring_face;
+    orig_halfedge->next() = next_diag_halfedge_to;
+    orig_halfedge->twin() = orig_halfedge->twin(); // same
+    orig_halfedge->vertex() = outer_vertex; // should be same
     orig_halfedge->edge() = orig_halfedge->edge(); // same
     orig_halfedge->face() = ring_face;
 
     // VERTEX
-    inner_vertex->halfedge() = outer_halfedge;
-//    outer_vertex->halfedge() = diag_halfedge_to;
+    inner_vertex->halfedge() = inner_halfedge;
+    outer_vertex->halfedge() = orig_halfedge;
 
     // EDGE
     ring_edge->halfedge() = inner_halfedge;
@@ -477,26 +483,30 @@ void HalfedgeMesh::bevelFaceComputeNewPositions(
     vector<Vector3D>& originalVertexPositions,
     vector<HalfedgeIter>& newHalfedges, double normalShift,
     double tangentialInset) {
-  // TODO Compute new vertex positions for the vertices of the beveled face.
-  //
-  // These vertices can be accessed via newHalfedges[i]->vertex()->position for
-  // i = 1, ..., newHalfedges.size()-1.
-  //
-  // The basic strategy here is to loop over the list of outgoing halfedges,
-  // and use the preceding and next vertex position from the original mesh
-  // (in the originalVertexPositions array) to compute an offset vertex
-  // position.
-  //
-  // Note that there is a 1-to-1 correspondence between halfedges in
-  // newHalfedges and vertex positions
-  // in orig.  So, you can write loops of the form
-  //
-  // for( int i = 0; i < newHalfedges.size(); hs++ )
-  // {
-  //    Vector3D pi = originalVertexPositions[i]; // get the original vertex
-  //    position correponding to vertex i
-  // }
-  //
+  Vector3D center;
+  auto num_edges = newHalfedges.size();
+  for (auto i = 0; i < num_edges; ++i) {
+    center += originalVertexPositions[i];
+  }
+  center /= num_edges;
+
+  // tangential inset
+  for(auto i = 0; i < num_edges; ++i) {
+    Vector3D& pi = originalVertexPositions[i]; // get the original vertex
+    Vector3D& new_pos = newHalfedges[i]->vertex()->position;
+    Vector3D offset = tangentialInset * (center - pi).unit();
+    if (new_pos.x == 0.0 && new_pos.y == 0.0 && new_pos.z == 0.0)
+      new_pos += pi;
+    new_pos += offset;
+  }
+
+  // normal shift
+  // traverse around to get the center face
+  FaceIter center_face = (*newHalfedges.begin())->next()->next()->next()->twin()->face();
+  Vector3D normal = center_face->normal();
+  for(auto i = 0; i < num_edges; ++i) {
+    newHalfedges[i]->vertex()->position += normal * normalShift;
+  }
 
 }
 
