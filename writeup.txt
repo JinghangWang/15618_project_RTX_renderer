@@ -4,3 +4,4 @@ Checkpoint:
     local operations implemented:
         - EdgeFlip
         - FaceBevel
+        - CollapseEdge

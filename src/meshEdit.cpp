@@ -21,20 +21,73 @@ VertexIter HalfedgeMesh::splitEdge(EdgeIter e0) {
 }
 
 VertexIter HalfedgeMesh::collapseEdge(EdgeIter e) {
-  // return collapsed vertex iterator
+  HalfedgeIter& h0 = e->halfedge(),
+              & h1 = h0->twin();
+  VertexIter& v0 = h0->vertex(),
+            & v1 = h1->vertex();
+  FaceIter& f0 = h0->face(),
+          & f1 = h1->face();
 
-  // Vector3D center = e->centroid();
+  vector<HalfedgeIter> halfedges_from_v0,
+                       halfedges_from_v1;
+
   // collect edges "from" both endpoints
-  // assign edges/vertices
-  // check whether the resulting neighbor faces are polygons
-    // if yes, update halfedge of neighboring faces
-    // if no, remove neightboring faces
-    // note if boundaryface, may also need to remove from the HalfedgeMesh::boundaries
-    // deleteBoundary()
-    // deleteVertex(), etc
-  // remove two endpoints, two halfedges and the edge
-  showError("collapseEdge() not implemented.");
-  return VertexIter();
+  // from edges from v0 starts h1's next
+  HalfedgeIter cur_halfedge = h1->next();
+  do {
+    halfedges_from_v0.push_back(cur_halfedge);
+    cur_halfedge = cur_halfedge->twin()->next();
+  } while (cur_halfedge != h0);
+
+  // from edges from v1 starts h0's next
+  cur_halfedge = h0->next();
+  do {
+    halfedges_from_v1.push_back(cur_halfedge);
+    cur_halfedge = cur_halfedge->twin()->next();
+  } while (cur_halfedge != h1);
+
+  // check whether neighboring faces are triangles
+  bool f0_was_triangle = !h0->isPolygon(),
+       f1_was_triangle = !h1->isPolygon();
+
+  // allocate new vertex
+  VertexIter v = newVertex();
+  v->position = e->centroid();
+
+  // assign
+  // Halfedges
+  for (auto h : halfedges_from_v0) { h->vertex() = v;}
+  for (auto h : halfedges_from_v1) { h->vertex() = v;}
+  // next edges of prev halfedges of h0/h1 should be the first in the halfedges_from
+  (*prev(halfedges_from_v0.end()))->twin()->next() = (*halfedges_from_v1.begin());
+  (*prev(halfedges_from_v1.end()))->twin()->next() = (*halfedges_from_v0.begin());
+
+  // faces
+  f0->halfedge() = *halfedges_from_v1.begin();
+  f1->halfedge() = *halfedges_from_v0.begin();
+
+  // vertex
+  v->halfedge() = *halfedges_from_v0.begin();
+
+  // remove elements in neighboring faces that were triangles
+  if (f0_was_triangle) {
+    HalfedgeIter & toremove_h0 = (*halfedges_from_v1.begin()),
+                 & toremove_h1 = (*prev(halfedges_from_v0.end()))->twin();
+    removeFaceWithTwoEdges(toremove_h0, toremove_h1);
+  }
+  if (f1_was_triangle) {
+    HalfedgeIter & toremove_h0 = (*halfedges_from_v0.begin()),
+                 & toremove_h1 = (*prev(halfedges_from_v1.end()))->twin();
+    removeFaceWithTwoEdges(toremove_h0, toremove_h1);
+  }
+
+  // remove elements
+  deleteVertex(v0);
+  deleteVertex(v1);
+  deleteEdge(e);
+  deleteHalfedge(h0);
+  deleteHalfedge(h1);
+  return v;
 }
 
 VertexIter HalfedgeMesh::collapseFace(FaceIter f) {
@@ -567,6 +620,28 @@ void HalfedgeMesh::splitPolygon(FaceIter f) {
   showError("splitPolygon() not implemented.");
 }
 
+void HalfedgeMesh::removeFaceWithTwoEdges(HalfedgeIter h0,
+                                          HalfedgeIter h1) {
+  HalfedgeIter &remaining_halfedge_0 = h0->twin(),
+               &remaining_halfedge_1 = h1->twin();
+  // allocate new edge and assign
+  EdgeIter new_e = newEdge();
+  remaining_halfedge_0->twin() = remaining_halfedge_1;
+  remaining_halfedge_0->edge() = new_e;
+  remaining_halfedge_1->twin() = remaining_halfedge_0;
+  remaining_halfedge_1->edge() = new_e;
+  new_e->halfedge() = remaining_halfedge_0;
+
+  // remove face, two halfedges and edge
+  FaceIter &toremove_f = h0->face();
+  if (toremove_f->isBoundary()) deleteBoundary(toremove_f);
+  deleteFace(toremove_f);
+  deleteEdge(h0->edge());
+  deleteEdge(h1->edge());
+  deleteHalfedge(h0);
+  deleteHalfedge(h1);
+}
+
 EdgeRecord::EdgeRecord(EdgeIter& _edge) : edge(_edge) {
   // TODO: (meshEdit)
   // Compute the combined quadric from the edge endpoints.
@@ -663,5 +738,4 @@ void MeshResampler::resample(HalfedgeMesh& mesh) {
   // -> Finally, apply some tangential smoothing to the vertex positions
   showError("resample() not implemented.");
 }
-
 }  // namespace CMU462

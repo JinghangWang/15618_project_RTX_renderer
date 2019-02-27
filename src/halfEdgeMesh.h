@@ -391,6 +391,11 @@ class Halfedge : public HalfedgeElement {
   bool isBoundary();
 
   /**
+   * Check if the halfedge is part of a polygon (i.e. not triangle)
+   */
+  bool isPolygon();
+
+  /**
    * Gather metadata about this element.
    */
   virtual Info getInfo();
@@ -1044,6 +1049,10 @@ class HalfedgeMesh {
 
   void splitPolygon(FaceIter f);
   void splitPolygons(vector<FaceIter>& fcs);
+
+private:
+    void removeFaceWithTwoEdges(HalfedgeIter h0,
+                                HalfedgeIter h1);
 
  protected:
   /*
