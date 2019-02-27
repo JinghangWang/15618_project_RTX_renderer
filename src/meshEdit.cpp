@@ -376,17 +376,100 @@ FaceIter HalfedgeMesh::bevelEdge(EdgeIter e) {
   return facesBegin();
 }
 
+// TODO This method should replace the face f with an additional, inset face
+// (and ring of faces around it), corresponding to a bevel operation.
 FaceIter HalfedgeMesh::bevelFace(FaceIter f) {
-  // TODO This method should replace the face f with an additional, inset face
-  // (and ring of faces around it), corresponding to a bevel operation. It
-  // should return the new face.  NOTE: This method is responsible for updating
-  // the *connectivity* of the mesh only---it does not need to update the vertex
-  // positions.  These positions will be updated in
-  // HalfedgeMesh::bevelFaceComputeNewPositions (which you also have to
-  // implement!)
+  vector<HalfedgeIter> orig_halfedges, inner_halfedges, outer_halfedges;
+  vector<HalfedgeIter> diag_halfedges_from, diag_halfedges_to; // diagonal halfedges from or to new vertices
+  vector<VertexIter> inner_vertices, outer_vertices;
+  vector<FaceIter> faces;
+  vector<EdgeIter> ring_edges, diag_edges;
 
-  showError("bevelFace() not implemented.");
-  return facesBegin();
+  HalfedgeIter cur_halfedge = f->halfedge();
+  do {
+    orig_halfedges.push_back(cur_halfedge);
+    inner_vertices.push_back(cur_halfedge->vertex());
+  } while (cur_halfedge != f->halfedge());
+  auto num_edges = halfedges.size();
+
+  // allocate new vertices, ring of faces, ring of edges, diagonal edges and halfedges
+  for (auto i = 0; i < num_edges; ++i) {
+    bool is_boundary = orig_halfedges[i]->isBoundary();
+    faces.push_back(newFace(is_boundary));
+    outer_vertices.push_back(newVertex());
+    ring_edges.push_back(newEdge());
+    inner_halfedges.push_back(newHalfedge());
+    outer_halfedges.push_back(newHalfedge());
+    diag_halfedges_from.push_back(newHalfedge());
+    diag_halfedges_to.push_back(newHalfedge());
+  }
+
+  // construct connectivity
+  for (auto i = 0; i< num_edges; ++i) {
+    auto idx_next = (i + num_edges + 1) % num_edges;
+    auto idx_prev = (i + num_edges - 1) % num_edges;
+    // collect
+    FaceIter& ring_face = faces[i],
+              prev_ring_face = faces[idx_prev];
+    VertexIter& inner_vertex = inner_vertices[i],
+                outer_vertex = outer_vertices[i],
+                next_inner_vertex = inner_vertices[idx_next];
+    HalfedgeIter& outer_halfedge = outer_halfedges[i],
+                  inner_halfedge = inner_halfedges[i],
+                  prev_inner_halfedge = inner_halfedges[idx_prev],
+                  prev_orig_halfedge = orig_halfedges[idx_prev],
+                  orig_halfedge = orig_halfedges[i],
+                  diag_halfedge_from = diag_halfedges_from[i],
+                  diag_halfedge_to = diag_halfedges_to[i],
+                  next_diag_halfedge_from = diag_halfedges_from[idx_next];
+    EdgeIter& diag_edge = diag_edges[i],
+              ring_edge = ring_edges[i],
+              orig_edge = orig_halfedge->edge();
+
+    // assign
+    // HALFEDGE
+    outer_halfedge->next() = next_diag_halfedge_from;
+    outer_halfedge->twin() = inner_halfedge;
+    outer_halfedge->vertex() = inner_vertex;
+    outer_halfedge->edge() = ring_edge;
+    outer_halfedge->face() = ring_face;
+    inner_halfedge->next() = prev_inner_halfedge;
+    inner_halfedge->twin() = outer_halfedge;
+    inner_halfedge->vertex() = next_inner_vertex;
+    inner_halfedge->edge() = ring_edge;
+    inner_halfedge->face() = f;
+    diag_halfedge_from->next() = prev_orig_halfedge;
+    diag_halfedge_from->twin() = diag_halfedge_to;
+    diag_halfedge_from->vertex() = inner_vertex;
+    diag_halfedge_from->edge() = diag_edge;
+    diag_halfedge_from->face() = prev_ring_face;
+    diag_halfedge_to->next() = outer_halfedge;
+    diag_halfedge_to->twin() = diag_halfedge_from;
+    diag_halfedge_to->vertex() = outer_vertex;
+    diag_halfedge_to->edge() = diag_edge;
+    diag_halfedge_to->face() = ring_face;
+    orig_halfedge->next() = diag_halfedge_to;
+    orig_halfedge->twin() = orig_halfedge->next(); // same
+    orig_halfedge->vertex() = orig_halfedge->vertex(); // same
+    orig_halfedge->edge() = orig_halfedge->edge(); // same
+    orig_halfedge->face() = ring_face;
+
+    // VERTEX
+    inner_vertex->halfedge() = outer_halfedge;
+//    outer_vertex->halfedge() = diag_halfedge_to;
+
+    // EDGE
+    ring_edge->halfedge() = inner_halfedge;
+    diag_edge->halfedge() = diag_halfedge_from;
+
+    // FACE
+    ring_face->halfedge() = outer_halfedge;
+  }
+
+  // CENTER FACE
+  f->halfedge() = *inner_halfedges.begin();
+
+  return f;
 }
 
 
