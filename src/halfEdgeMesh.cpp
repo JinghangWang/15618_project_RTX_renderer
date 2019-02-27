@@ -13,7 +13,7 @@ bool Halfedge::isBoundary()
 
 bool Halfedge::isPolygon() {
   HalfedgeIter next = _next;
-  auto count = 1;
+  auto count = 0;
   do {
     count++;
     next = next->next();

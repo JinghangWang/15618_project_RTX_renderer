@@ -4,10 +4,6 @@
 #include "mutablePriorityQueue.h"
 #include "error_dialog.h"
 
-#include <sstream>
-#include <string>
-#include <iostream>
-
 namespace CMU462 {
 
 VertexIter HalfedgeMesh::splitEdge(EdgeIter e0) {
@@ -50,7 +46,7 @@ VertexIter HalfedgeMesh::collapseEdge(EdgeIter e) {
   bool f0_was_triangle = !h0->isPolygon(),
        f1_was_triangle = !h1->isPolygon();
 
-  // allocate new vertex
+   // allocate new vertex
   VertexIter v = newVertex();
   v->position = e->centroid();
 
@@ -72,12 +68,12 @@ VertexIter HalfedgeMesh::collapseEdge(EdgeIter e) {
   // remove elements in neighboring faces that were triangles
   if (f0_was_triangle) {
     HalfedgeIter & toremove_h0 = (*halfedges_from_v1.begin()),
-                 & toremove_h1 = (*prev(halfedges_from_v0.end()))->twin();
+                 & toremove_h1 = toremove_h0->next();
     removeFaceWithTwoEdges(toremove_h0, toremove_h1);
   }
   if (f1_was_triangle) {
     HalfedgeIter & toremove_h0 = (*halfedges_from_v0.begin()),
-                 & toremove_h1 = (*prev(halfedges_from_v1.end()))->twin();
+                 & toremove_h1 = toremove_h0->next();
     removeFaceWithTwoEdges(toremove_h0, toremove_h1);
   }
 
@@ -632,9 +628,13 @@ void HalfedgeMesh::removeFaceWithTwoEdges(HalfedgeIter h0,
   remaining_halfedge_1->edge() = new_e;
   new_e->halfedge() = remaining_halfedge_0;
 
+  remaining_halfedge_0->vertex()->halfedge() = remaining_halfedge_0;
+  remaining_halfedge_1->vertex()->halfedge() = remaining_halfedge_1;
+
   // remove face, two halfedges and edge
   FaceIter &toremove_f = h0->face();
-  if (toremove_f->isBoundary()) deleteBoundary(toremove_f);
+  if (toremove_f->isBoundary())
+    deleteBoundary(toremove_f);
   deleteFace(toremove_f);
   deleteEdge(h0->edge());
   deleteEdge(h1->edge());
