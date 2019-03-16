@@ -17,6 +17,10 @@ VertexIter HalfedgeMesh::splitEdge(EdgeIter e0) {
 }
 
 VertexIter HalfedgeMesh::collapseEdge(EdgeIter e) {
+  // not collapse edge at boundary
+  if (e->isBoundary()) {
+    return e->getVertex();
+  }
   HalfedgeIter& h0 = e->halfedge(),
               & h1 = h0->twin();
   VertexIter& v0 = h0->vertex(),
