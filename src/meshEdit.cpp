@@ -48,8 +48,8 @@ VertexIter HalfedgeMesh::collapseEdge(EdgeIter e) {
   } while (cur_halfedge != h1);
 
   // check whether neighboring faces are triangles
-  bool f0_was_triangle = !h0->isPolygon(),
-       f1_was_triangle = !h1->isPolygon();
+  bool f0_was_triangle = !f0->isPolygon(),
+       f1_was_triangle = !f1->isPolygon();
 
    // allocate new vertex
   VertexIter v = newVertex();
@@ -716,9 +716,69 @@ void HalfedgeMesh::splitPolygons(vector<FaceIter>& fcs) {
 }
 
 void HalfedgeMesh::splitPolygon(FaceIter f) {
-  // TODO: (meshedit) 
-  // Triangulate a polygonal face
-  showError("splitPolygon() not implemented.");
+  if (f->isBoundary()) return;
+  if (!f->isPolygon()) return;
+
+  vector<VertexIter> vertices;
+  vector<HalfedgeIter> halfedges;
+  HalfedgeIter h0 = f->halfedge();
+  HalfedgeIter cur_h = h0->next(); // start from the next halfedge
+  VertexIter v0 = h0->vertex();
+
+  // collect all vertices except the first one
+  while (cur_h != h0) {
+    halfedges.push_back(cur_h);
+    vertices.push_back(cur_h->vertex());
+    cur_h = cur_h->next();
+  }
+
+  HalfedgeIter h1, h2, h3, h4;
+  FaceIter new_f;
+  // loop to triangulate
+  for (auto i = 1; i < vertices.size(); ++i) {
+    h1 = halfedges[i - 1];
+    h3 = halfedges[i];
+    if (i == vertices.size() - 1) { // handle last triangle specially
+      h2 = halfedges.back();
+      new_f = f;
+    } else {
+      new_f = newFace();
+      h2 = newHalfedge();
+      h4 = newHalfedge();
+    }
+    VertexIter v1 = vertices[i - 1],
+               v2 = vertices[i];
+
+    // assign and connect
+    // HALFEDGES
+    h0->next() = h1;
+    h0->face() = new_f;
+    h1->next() = h2;
+    h1->face() = new_f;
+    h2->next() = h0;
+    h2->face() = new_f;
+
+    if (i != vertices.size() -1 ) {
+      EdgeIter e = newEdge();
+      e->halfedge() = h2;
+
+      h2->twin() = h4;
+      h2->edge() = e;
+      h2->vertex() = v2;
+
+      h4->next() = h3;
+      h4->twin() = h2;
+      h4->edge() = e;
+      h4->vertex() = v0;
+    }
+    // h4 will be next h0
+
+    // FACE
+    new_f->halfedge() = h0;
+
+    // update h0
+    h0 = h4;
+  }
 }
 
 void HalfedgeMesh::removeFaceWithTwoEdges(HalfedgeIter h0,

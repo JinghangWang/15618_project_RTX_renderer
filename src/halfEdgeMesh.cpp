@@ -21,6 +21,10 @@ bool Halfedge::isPolygon() {
   return count > 3;
 }
 
+bool Face::isPolygon() {
+  return _halfedge->isPolygon();
+}
+
 void Halfedge::getPickPoints(Vector3D& a, Vector3D& b, Vector3D& p, Vector3D& q,
                              Vector3D& r) const {
   const double w = 1. / 6;
@@ -35,6 +39,7 @@ void Halfedge::getPickPoints(Vector3D& a, Vector3D& b, Vector3D& p, Vector3D& q,
   q = (p + r) / 2.;
   b = a + 2. * (q - a);
 }
+
 
 bool Edge::isBoundary() { return halfedge()->face()->isBoundary() || halfedge()->twin()->face()->isBoundary(); }
 

@@ -456,6 +456,11 @@ class Face : public HalfedgeElement {
   Face(bool isBoundary = false) : _isBoundary(isBoundary) {}
 
   /**
+   * Check if the face is a polygon (i.e. not triangle)
+   */
+  bool isPolygon();
+
+  /**
    * Returns a reference to some halfedge of this face
    */
   HalfedgeIter& halfedge() { return _halfedge; }
