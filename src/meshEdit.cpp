@@ -635,7 +635,7 @@ FaceIter HalfedgeMesh::bevelFace(FaceIter f) {
   }
 
   // CENTER FACE
-  f->halfedge() = *inner_halfedges.begin();
+  f->halfedge() = inner_halfedges.front();
 
   return f;
 }
