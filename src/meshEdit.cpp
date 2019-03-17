@@ -100,36 +100,65 @@ VertexIter HalfedgeMesh::collapseFace(FaceIter f) {
 }
 
 FaceIter HalfedgeMesh::eraseVertex(VertexIter v) {
-//  vector<HalfedgeIter> halfedges_from_v,
-//                       halfedges_to_v;
-//  vector<FaceIter> neighboring_faces;
-//
-//  HalfedgeIter h0 = v->halfedge();
-//  HalfedgeIter cur_h = h0;
-//  do{
-//    halfedges_from_v.push_back(cur_h);
-//    halfedges_to_v.push_back(cur_h->twin());
-//    neighboring_faces.push_back(cur_h->face());
-//    cur_h = cur_h->twin()->next();
-//  } while (cur_h != h0);
-//
-//  // quit if any of the neighboring face is at boundary
-//  for (auto f : neighboring_faces) {
-//    if (f->isBoundary()) {
-//      return FaceIter();
-//    }
-//  }
+  vector<HalfedgeIter> halfedges_from_v,
+                       halfedges_to_v;
+  vector<FaceIter> neighboring_faces;
+  vector<EdgeIter> edges_to_v;
 
   // collect edges, halfedges from and to the vertex v
+  HalfedgeIter h0 = v->halfedge();
+  HalfedgeIter cur_h = h0;
+  do{
+    halfedges_from_v.push_back(cur_h);
+    halfedges_to_v.push_back(cur_h->twin());
+    neighboring_faces.push_back(cur_h->face());
+    cur_h = cur_h->twin()->next();
+  } while (cur_h != h0);
+
+  // quit if any of the neighboring face is at boundary
+  for (auto f : neighboring_faces) {
+    if (f->isBoundary()) {
+      return FaceIter();
+    }
+  }
+
   // create a new face
-  // iterate surrounding halfedges and assign their face to the newly created face
-  // connect next of surrounding halfedges
-  // prev of to's next = to's twin's next
+  FaceIter new_f = newFace();
+  new_f->halfedge() = halfedges_from_v.front()->next();
 
-  // remove all edges/halfedges collected, and the vertex
-  // return the new face
+  // iterate surrounding halfedges
+  // assign their face to the newly created face
+  for (auto h : halfedges_from_v) {
+    cur_h = h;
+    do {
+      cur_h->face() = new_f;
+      cur_h = cur_h->next();
+    } while (cur_h != h);
+  }
 
-  return FaceIter();
+  // connect outter halfedges
+  // assign vertices' halfedges correctly
+  for (auto h : halfedges_to_v) {
+    VertexIter vertex = h->vertex();
+    HalfedgeIter outter_h = h->prev();
+    outter_h->next() = h->twin()->next();
+    vertex->halfedge() = h->twin()->next();
+  }
+
+  // remove all edges/halfedges/faces collected, and the vertex
+  for (auto h : halfedges_from_v) {
+    deleteEdge(h->edge());
+    deleteHalfedge(h);
+  }
+  for (auto h : halfedges_to_v) {
+    deleteHalfedge(h);
+  }
+  for (auto f : neighboring_faces) {
+    deleteFace(f);
+  }
+  deleteVertex(v);
+
+  return new_f;
 }
 
 FaceIter HalfedgeMesh::eraseEdge(EdgeIter e) {
