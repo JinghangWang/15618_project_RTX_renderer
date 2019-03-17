@@ -100,9 +100,34 @@ VertexIter HalfedgeMesh::collapseFace(FaceIter f) {
 }
 
 FaceIter HalfedgeMesh::eraseVertex(VertexIter v) {
-  // TODO: (meshEdit)
-  // This method should replace the given vertex and all its neighboring
-  // edges and faces with a single face, returning the new face.
+//  vector<HalfedgeIter> halfedges_from_v,
+//                       halfedges_to_v;
+//  vector<FaceIter> neighboring_faces;
+//
+//  HalfedgeIter h0 = v->halfedge();
+//  HalfedgeIter cur_h = h0;
+//  do{
+//    halfedges_from_v.push_back(cur_h);
+//    halfedges_to_v.push_back(cur_h->twin());
+//    neighboring_faces.push_back(cur_h->face());
+//    cur_h = cur_h->twin()->next();
+//  } while (cur_h != h0);
+//
+//  // quit if any of the neighboring face is at boundary
+//  for (auto f : neighboring_faces) {
+//    if (f->isBoundary()) {
+//      return FaceIter();
+//    }
+//  }
+
+  // collect edges, halfedges from and to the vertex v
+  // create a new face
+  // iterate surrounding halfedges and assign their face to the newly created face
+  // connect next of surrounding halfedges
+  // prev of to's next = to's twin's next
+
+  // remove all edges/halfedges collected, and the vertex
+  // return the new face
 
   return FaceIter();
 }
@@ -140,7 +165,6 @@ FaceIter HalfedgeMesh::eraseEdge(EdgeIter e) {
     cur_h->face() = f0;
     cur_h = cur_h->next();
   } while (cur_h != h1);
-  cout << count << endl;
 
   // 2. fix nexts
   h4->next() = h3;
