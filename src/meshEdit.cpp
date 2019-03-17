@@ -3,6 +3,7 @@
 #include "meshEdit.h"
 #include "mutablePriorityQueue.h"
 #include "error_dialog.h"
+#include <assert.h>
 
 namespace CMU462 {
 
@@ -19,7 +20,7 @@ VertexIter HalfedgeMesh::splitEdge(EdgeIter e0) {
 VertexIter HalfedgeMesh::collapseEdge(EdgeIter e) {
   // not collapse edge at boundary
   if (e->isBoundary()) {
-    return e->getVertex();
+    return e->halfedge()->vertex();
   }
   HalfedgeIter& h0 = e->halfedge(),
               & h1 = h0->twin();
@@ -107,12 +108,59 @@ FaceIter HalfedgeMesh::eraseVertex(VertexIter v) {
 }
 
 FaceIter HalfedgeMesh::eraseEdge(EdgeIter e) {
-  // TODO: (meshEdit)
-  // This method should erase the given edge and return an iterator to the
-  // merged face.
+  HalfedgeIter& h0 = e->halfedge(),
+              & h1 = h0->twin();
+  FaceIter f0 = h0->face(),
+           f1 = h1->face();
 
-  showError("eraseVertex() not implemented.");
-  return FaceIter();
+  // return original non-boundary face if edge is at boundary
+  if (e->isBoundary()) {
+    if (h0->isBoundary())
+      return f1;
+    return f0;
+  }
+
+  // return face if both faces are the same one
+  if (f0 == f1)
+    return f0;
+
+  // erase regular edge
+  VertexIter v0 = h0->vertex(),
+             v1 = h1->vertex();
+
+  HalfedgeIter h3 = h1->next(),
+               h5 = h1->prev(),
+               h2 = h0->next(),
+               h4 = h0->prev();
+
+  // Halfedges
+  // 1. reassign face from f1 to f0
+  HalfedgeIter cur_h = h1;
+  do {
+    cur_h->face() = f0;
+    cur_h = cur_h->next();
+  } while (cur_h != h1);
+  cout << count << endl;
+
+  // 2. fix nexts
+  h4->next() = h3;
+  h5->next() = h2;
+
+
+  // Vertices
+  v0->halfedge() = h3;
+  v1->halfedge() = h2;
+
+  // Face
+  f0->halfedge() = h2;
+
+  // delete f1 and keep f0
+  deleteFace(f1);
+  deleteHalfedge(h0);
+  deleteHalfedge(h1);
+  deleteEdge(e);
+
+  return f0;
 }
 
 EdgeIter HalfedgeMesh::flipEdge(EdgeIter e0) {
