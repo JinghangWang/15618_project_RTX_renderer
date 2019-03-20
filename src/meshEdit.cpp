@@ -345,7 +345,7 @@ void HalfedgeMesh::subdivideQuad(bool useCatmullClark) {
   // efficient) than incrementally modifying the existing one.  These steps are
   // detailed below.
 
-  // TODO Step I: Compute the vertex positions for the subdivided mesh.  Here
+  // Step I: Compute the vertex positions for the subdivided mesh.  Here
   // we're
   // going to do something a little bit strange: since we will have one vertex
   // in
@@ -355,7 +355,6 @@ void HalfedgeMesh::subdivideQuad(bool useCatmullClark) {
   // edges,
   // and faces of the original mesh.  These positions can then be conveniently
   // copied into the new, subdivided mesh.
-  // [See subroutines for actual "TODO"s]
   if (useCatmullClark) {
     computeCatmullClarkPositions();
   } else {
@@ -415,7 +414,7 @@ void HalfedgeMesh::computeLinearSubdivisionPositions() {
   // its original position, Vertex::position.
   for (auto v : vertices) {
     if (!v.isBoundary())
-    v.newPosition = v.position;
+      v.newPosition = v.position;
   }
 
   // For each edge, assign the midpoint of the two original
@@ -468,7 +467,10 @@ void HalfedgeMesh::computeCatmullClarkPositions() {
 
   // vertices
   for (auto v : vertices) {
-    if (v.isBoundary()) continue;
+    if (v.isBoundary()) {
+      // v.newPosition = v.position;
+      continue;
+    }
 
     Vector3D Q, R;
     Size degree = 0;
@@ -494,15 +496,26 @@ void HalfedgeMesh::computeCatmullClarkPositions() {
  * subdivided using Catmull-Clark (or linear) subdivision.
  */
 void HalfedgeMesh::assignSubdivisionIndices() {
-  // TODO Start a counter at zero; if you like, you can use the
+  // Start a counter at zero; if you like, you can use the
   // "Index" type (defined in halfedgeMesh.h)
+  Index i = 0;
 
-  // TODO Iterate over vertices, assigning values to Vertex::index
+  // Iterate over vertices, assigning values to Vertex::index
+  for (auto v : vertices) {
+    if (!v.isBoundary())
+      v.index = i++;
+  }
 
-  // TODO Iterate over edges, assigning values to Edge::index
+  // Iterate over edges, assigning values to Edge::index
+  for (auto e : edges) {
+    if (!e.isBoundary())
+      e.index = i++;
+  }
 
-  // TODO Iterate over faces, assigning values to Face::index
-  showError("assignSubdivisionIndices() not implemented.");
+  // Iterate over faces, assigning values to Face::index
+  for (auto f : faces) {
+    f.index = i++;
+  }
 }
 
 /**
