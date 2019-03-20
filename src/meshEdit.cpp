@@ -411,16 +411,24 @@ void HalfedgeMesh::subdivideQuad(bool useCatmullClark) {
  * centroids.
  */
 void HalfedgeMesh::computeLinearSubdivisionPositions() {
-  // TODO For each vertex, assign Vertex::newPosition to
+  // For each vertex, assign Vertex::newPosition to
   // its original position, Vertex::position.
+  for (auto v : vertices) {
+    v.newPosition = v.position;
+  }
 
-  // TODO For each edge, assign the midpoint of the two original
+  // For each edge, assign the midpoint of the two original
   // positions to Edge::newPosition.
+  for (auto e : edges) {
+    e.newPosition = e.centroid();
+  }
 
-  // TODO For each face, assign the centroid (i.e., arithmetic mean)
+  // For each face, assign the centroid (i.e., arithmetic mean)
   // of the original vertex positions to Face::newPosition.  Note
   // that in general, NOT all faces will be triangles!
-  showError("computeLinearSubdivisionPositions() not implemented.");
+  for (auto f : faces) {
+    f.newPosition = f.centroid();
+  }
 }
 
 /**
