@@ -414,13 +414,15 @@ void HalfedgeMesh::computeLinearSubdivisionPositions() {
   // For each vertex, assign Vertex::newPosition to
   // its original position, Vertex::position.
   for (auto v : vertices) {
+    if (!v.isBoundary())
     v.newPosition = v.position;
   }
 
   // For each edge, assign the midpoint of the two original
   // positions to Edge::newPosition.
   for (auto e : edges) {
-    e.newPosition = e.centroid();
+    if (!e.isBoundary())
+      e.newPosition = e.centroid();
   }
 
   // For each face, assign the centroid (i.e., arithmetic mean)
@@ -446,12 +448,43 @@ void HalfedgeMesh::computeCatmullClarkPositions() {
   // slightly more involved, using the Catmull-Clark subdivision
   // rules. (These rules are outlined in the Developer Manual.)
 
-  // TODO face
+  // face
+  for (auto f : faces) {
+    f.newPosition = f.centroid();
+  }
 
-  // TODO edges
+  // edges
+  for (auto e : edges) {
+    if (!e.isBoundary()) {
+      HalfedgeIter h0 = e.halfedge(),
+                   h1 = h0->twin();
+      VertexIter v0 = h0->vertex(),
+                 v1 = h1->vertex();
+      FaceIter f0 = h0->face(),
+               f1 = h1->face();
+      e.newPosition = (v0->position + v1->position + f0->newPosition + f1->newPosition) / 4;
+    }
+  }
 
-  // TODO vertices
-  showError("computeCatmullClarkPositions() not implemented.");
+  // vertices
+  for (auto v : vertices) {
+    if (v.isBoundary()) continue;
+
+    Vector3D Q, R;
+    Size degree = 0;
+    HalfedgeIter h = v.halfedge();
+    do {
+      degree++;
+      Q += h->face()->newPosition; // newPosition of face == centroid
+      R += h->edge()->centroid();
+      h = h->twin()->next();
+    } while (h != v.halfedge());
+
+    Q /= degree;
+    R /= degree;
+
+    v.newPosition = (Q + 2*R + (degree - 3) * v.position)/degree;
+  }
 }
 
 /**
