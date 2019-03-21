@@ -5,7 +5,7 @@
 #include "error_dialog.h"
 #include <assert.h>
 
-#define CLOSE_TO_ZERO 0.001L // TODO
+#define CLOSE_TO_ZERO 0.0000001L // TODO
 
 namespace CMU462 {
 
@@ -24,12 +24,12 @@ VertexIter HalfedgeMesh::collapseEdge(EdgeIter e) {
   if (e->isBoundary()) {
     return e->halfedge()->vertex();
   }
-  HalfedgeIter& h0 = e->halfedge(),
-              & h1 = h0->twin();
-  VertexIter& v0 = h0->vertex(),
-            & v1 = h1->vertex();
-  FaceIter& f0 = h0->face(),
-          & f1 = h1->face();
+  HalfedgeIter h0 = e->halfedge(),
+               h1 = h0->twin();
+  VertexIter v0 = h0->vertex(),
+             v1 = h1->vertex();
+  FaceIter f0 = h0->face(),
+           f1 = h1->face();
 
   vector<HalfedgeIter> halfedges_from_v0,
                        halfedges_from_v1;
@@ -62,8 +62,8 @@ VertexIter HalfedgeMesh::collapseEdge(EdgeIter e) {
   for (auto h : halfedges_from_v0) { h->vertex() = v;}
   for (auto h : halfedges_from_v1) { h->vertex() = v;}
   // next edges of prev halfedges of h0/h1 should be the first in the halfedges_from
-  (*prev(halfedges_from_v0.end()))->twin()->next() = (*halfedges_from_v1.begin());
-  (*prev(halfedges_from_v1.end()))->twin()->next() = (*halfedges_from_v0.begin());
+  (*prev(halfedges_from_v0.end()))->twin()->next() = halfedges_from_v1.front();
+  (*prev(halfedges_from_v1.end()))->twin()->next() = halfedges_from_v0.front();
 
   // faces
   f0->halfedge() = *halfedges_from_v1.begin();
@@ -74,13 +74,13 @@ VertexIter HalfedgeMesh::collapseEdge(EdgeIter e) {
 
   // remove elements in neighboring faces that were triangles
   if (f0_was_triangle) {
-    HalfedgeIter & toremove_h0 = (*halfedges_from_v1.begin()),
-                 & toremove_h1 = toremove_h0->next();
+    HalfedgeIter toremove_h0 = h0->next(),
+                 toremove_h1 = toremove_h0->next();
     removeFaceWithTwoEdges(toremove_h0, toremove_h1);
   }
   if (f1_was_triangle) {
-    HalfedgeIter & toremove_h0 = (*halfedges_from_v0.begin()),
-                 & toremove_h1 = toremove_h0->next();
+    HalfedgeIter toremove_h0 = h1->next(),
+                 toremove_h1 = toremove_h0->next();
     removeFaceWithTwoEdges(toremove_h0, toremove_h1);
   }
 
@@ -856,8 +856,8 @@ void HalfedgeMesh::splitPolygon(FaceIter f) {
 
 void HalfedgeMesh::removeFaceWithTwoEdges(HalfedgeIter h0,
                                           HalfedgeIter h1) {
-  HalfedgeIter &remaining_halfedge_0 = h0->twin(),
-               &remaining_halfedge_1 = h1->twin();
+  HalfedgeIter remaining_halfedge_0 = h0->twin(),
+               remaining_halfedge_1 = h1->twin();
   // allocate new edge and assign
   EdgeIter new_e = newEdge();
   remaining_halfedge_0->twin() = remaining_halfedge_1;
@@ -881,7 +881,6 @@ void HalfedgeMesh::removeFaceWithTwoEdges(HalfedgeIter h0,
 }
 
 EdgeRecord::EdgeRecord(EdgeIter& _edge) : edge(_edge) {
-  // TODO: (meshEdit)
   // Compute the combined quadric from the edge endpoints.
   HalfedgeIter h0 = _edge->halfedge(),
                h1 = h0->twin();
@@ -893,41 +892,35 @@ EdgeRecord::EdgeRecord(EdgeIter& _edge) : edge(_edge) {
   //    associated with these two endpoints.
   // computed by accumulating quadrics and then extacting the upper-left 3x3 block
   Matrix3x3 A;
-  A(0, 0) = quadric(0, 0);
-  A(0, 1) = quadric(0, 1);
-  A(0, 2) = quadric(0, 2);
-  A(1, 0) = quadric(1, 0);
-  A(1, 1) = quadric(1, 1);
-  A(1, 2) = quadric(1, 2);
-  A(2, 0) = quadric(2, 0);
-  A(2, 1) = quadric(2, 1);
-  A(2, 2) = quadric(2, 2);
+  A[0] = quadric[0].to3D();
+  A[1] = quadric[1].to3D();
+  A[2] = quadric[2].to3D();
 
   // computed by extracting minus the upper-right 3x1 column from the same matrix
-  Vector3D b = - quadric.column(3).to3D();
+  Vector3D b = - quadric[3].to3D();
 
   // -> Use this system to solve for the optimal position, and store it in
   //    EdgeRecord::optimalPoint.
-  Vector3D x;
-  if (abs(A.det()) < CLOSE_TO_ZERO) {
-    // A is singular, need to find optimal x on the edge
-    unsigned int samples = 10;
-    Vector3D e01 = (v1->position - v0->position) / samples;
-    Vector3D optimalX;
-    double cost = numeric_limits<double>::infinity();
-    for (auto i = 0; i < samples+1; ++i) {
-      Vector3D current_x = v0->position + i * e01;
-      Vector4D xx = Vector4D(current_x, 1.0);
-      double new_cost = dot(xx, quadric * xx);
-      if (new_cost < cost) {
-        cost = new_cost;
-        optimalX = current_x;
-      }
-    }
-    x = optimalX;
-  } else {
-    x = A.inv() * b; // solve Ax = b for x, by hitting both sides with the inverse of A
-  }
+  Vector3D x = _edge->centroid();
+//  if (abs(A.det()) < CLOSE_TO_ZERO) {
+//    // A is singular, need to find optimal x on the edge
+//    unsigned int samples = 100;
+//    Vector3D e01 = (v1->position - v0->position) / samples;
+//    Vector3D optimalX;
+//    double cost = numeric_limits<double>::infinity();
+//    for (auto i = 0; i < samples+1; ++i) {
+//      Vector3D current_x = v0->position + i * e01;
+//      Vector4D xx = Vector4D(current_x, 1.0);
+//      double new_cost = dot(xx, quadric * xx);
+//      if (new_cost < cost) {
+//        cost = new_cost;
+//        optimalX = current_x;
+//      }
+//    }
+//    x = optimalX;
+//  } else {
+//    x = A.inv() * b; // solve Ax = b for x, by hitting both sides with the inverse of A
+//  }
   optimalPoint = x;
 
   // -> Also store the cost associated with collapsing this edg in
@@ -990,14 +983,13 @@ void MeshResampler::upsample(HalfedgeMesh& mesh)
 }
 
 void MeshResampler::downsample(HalfedgeMesh& mesh) {
-  // TODO: (meshEdit)
   // Compute initial quadrics for each face by simply writing the plane equation
   // for the face in homogeneous coordinates. These quadrics should be stored
   // in Face::quadric
   for (auto f = mesh.facesBegin(); f != mesh.facesEnd(); ++f) {
     VertexIter vertex = f->halfedge()->vertex();
     Vector3D normal = f->normal();
-    Vector4D v = Vector4D(normal, - dot(normal, vertex->position);
+    Vector4D v = Vector4D(normal, - dot(normal, vertex->position));
     f->quadric = outer(v, v);
   }
 
@@ -1007,8 +999,9 @@ void MeshResampler::downsample(HalfedgeMesh& mesh) {
     HalfedgeIter h = v->halfedge();
     do {
       FaceIter f = h->face();
-      // note: boudnary faces' quadrics are 0's
-      v->quadric += f->quadric;
+      if (!f->isBoundary())
+        v->quadric += f->quadric;
+        h = h->next();
     } while (h != v->halfedge());
   }
 
@@ -1031,7 +1024,8 @@ void MeshResampler::downsample(HalfedgeMesh& mesh) {
   //    a quadric to the collapsed vertex, and to pop the collapsed edge off the
   //    top of the queue.
   auto target = mesh.nFaces() / 4;
-  while (mesh.nFaces() > target) {
+  while (mesh.nFaces() > target)
+  {
     EdgeRecord best_record = queue.top();
     EdgeIter best_edge = best_record.edge;
     queue.pop();
