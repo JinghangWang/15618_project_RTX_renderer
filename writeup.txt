@@ -5,3 +5,10 @@ Checkpoint:
         - EdgeFlip
         - FaceBevel
         - CollapseEdge
+        - EraseVertex
+        - EraseEdge
+
+    global operations implemented:
+        - triangulation
+        - linear subdivision
+        - CatmullClark subdivision
