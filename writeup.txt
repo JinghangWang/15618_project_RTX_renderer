@@ -12,3 +12,4 @@ Checkpoint:
         - triangulation
         - linear subdivision
         - CatmullClark subdivision
+        - Simplification

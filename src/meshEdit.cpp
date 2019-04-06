@@ -901,26 +901,26 @@ EdgeRecord::EdgeRecord(EdgeIter& _edge) : edge(_edge) {
 
   // -> Use this system to solve for the optimal position, and store it in
   //    EdgeRecord::optimalPoint.
-  Vector3D x = _edge->centroid();
-//  if (abs(A.det()) < CLOSE_TO_ZERO) {
-//    // A is singular, need to find optimal x on the edge
-//    unsigned int samples = 100;
-//    Vector3D e01 = (v1->position - v0->position) / samples;
-//    Vector3D optimalX;
-//    double cost = numeric_limits<double>::infinity();
-//    for (auto i = 0; i < samples+1; ++i) {
-//      Vector3D current_x = v0->position + i * e01;
-//      Vector4D xx = Vector4D(current_x, 1.0);
-//      double new_cost = dot(xx, quadric * xx);
-//      if (new_cost < cost) {
-//        cost = new_cost;
-//        optimalX = current_x;
-//      }
-//    }
-//    x = optimalX;
-//  } else {
-//    x = A.inv() * b; // solve Ax = b for x, by hitting both sides with the inverse of A
-//  }
+  Vector3D x;
+  if (abs(A.det()) < CLOSE_TO_ZERO) {
+    // A is singular, need to find optimal x on the edge
+    unsigned int samples = 100;
+    Vector3D e01 = (v1->position - v0->position) / samples;
+    Vector3D optimalX;
+    double cost = numeric_limits<double>::infinity();
+    for (auto i = 0; i < samples+1; ++i) {
+      Vector3D current_x = v0->position + i * e01;
+      Vector4D xx = Vector4D(current_x, 1.0);
+      double new_cost = dot(xx, quadric * xx);
+      if (new_cost < cost) {
+        cost = new_cost;
+        optimalX = current_x;
+      }
+    }
+    x = optimalX;
+  } else {
+    x = A.inv() * b; // solve Ax = b for x, by hitting both sides with the inverse of A
+  }
   optimalPoint = x;
 
   // -> Also store the cost associated with collapsing this edg in
@@ -1001,7 +1001,7 @@ void MeshResampler::downsample(HalfedgeMesh& mesh) {
       FaceIter f = h->face();
       if (!f->isBoundary())
         v->quadric += f->quadric;
-        h = h->next();
+        h = h->twin()->next();
     } while (h != v->halfedge());
   }
 
