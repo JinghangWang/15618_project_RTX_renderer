@@ -16,16 +16,9 @@ namespace StaticScene {
 #define NUM_BUCKETS 4
 #define C_SECT 1
 
-
 BVHAccel::BVHAccel(const std::vector<Primitive *> &_primitives,
                    size_t max_leaf_size) {
   this->primitives = _primitives;
-
-  // TODO (PathTracer):
-  // Construct a BVH from the given vector of primitives and maximum leaf
-  // size configuration. The starter code build a BVH aggregate with a
-  // single leaf node (which is also the root) that encloses all the
-  // primitives.
 
   BBox root_bb;
   for (size_t i = 0; i < primitives.size(); ++i) {
@@ -33,13 +26,24 @@ BVHAccel::BVHAccel(const std::vector<Primitive *> &_primitives,
   }
   root = new BVHNode(root_bb, 0, primitives.size());
 
-  buildBVHRecursively(root, max_leaf_size);
+  vector<BVHNode*> stack;
+  stack.push_back(root);
+  while (!stack.empty()) {
+    BVHNode* node = stack.back();
+    stack.pop_back();
+    buildBVHRecursively(node, max_leaf_size);
+    if (!node->isLeaf()) {
+      stack.push_back(node->l);
+      stack.push_back(node->r);
+    }
+  }
 }
 
 void BVHAccel::buildBVHRecursively(BVHNode* root, size_t max_leaf_size) {
   // leaf node -> done
   if (root->range <= max_leaf_size)
     return;
+//  cout << "current BVH size " << root->range << endl;
 
   const BBox& root_bb = root->bb;
   size_t start = root->start,
@@ -54,12 +58,13 @@ void BVHAccel::buildBVHRecursively(BVHNode* root, size_t max_leaf_size) {
   std::vector<BVHNode> buckets(NUM_BUCKETS);
 
   // ***** find best partition *****
-  char best_dimension;
+  Axis best_dimension = Axis::U;
   size_t best_partition;
-  double best_cost = std::numeric_limits<double>::max();
+  double cost;
+  double best_cost = (double) root->range;
 
   // X direction
-  sortPrimitivesInDimension(primitives, start, end, 'x');
+  sortPrimitivesInDimension(primitives, start, end, Axis::X);
   // assign primitives to buckets
   double stride = (x_max - x_min)/NUM_BUCKETS;
   for (auto i = start; i < end; ++i) {
@@ -70,18 +75,17 @@ void BVHAccel::buildBVHRecursively(BVHNode* root, size_t max_leaf_size) {
 
   // iterate and get best partition
   for (auto i = 0; i < NUM_BUCKETS - 1; ++i) {
-    double cost = SAH(root_bb, buckets, i);
-//    cout << "x: partition " << i << " with SAH " << cost << endl;
+    cost = SAH(root_bb, buckets, i);
     if (cost < best_cost) {
       best_cost = cost;
       best_partition = i;
-      best_dimension = 'x';
+      best_dimension = Axis::X;
     }
   }
 
   // Y direction
   for (auto& b : buckets) {b.clear();}
-  sortPrimitivesInDimension(primitives, start, end, 'y');
+  sortPrimitivesInDimension(primitives, start, end, Axis::Y);
   // assign primitives to buckets
   stride = (y_max - y_min)/NUM_BUCKETS;
   for (auto i = start; i < end; ++i) {
@@ -92,48 +96,92 @@ void BVHAccel::buildBVHRecursively(BVHNode* root, size_t max_leaf_size) {
 
   // iterate and get best partition
   for (auto i = 0; i < NUM_BUCKETS - 1; ++i) {
-    double cost = SAH(root_bb, buckets, i);
-//    cout << "y: partition " << i << " with SAH " << cost << endl;
+    cost = SAH(root_bb, buckets, i);
     if (cost < best_cost) {
       best_cost = cost;
       best_partition = i;
-      best_dimension = 'y';
+      best_dimension = Axis::Y;
+    }
+  }
+
+  // Z direction
+  for (auto& b : buckets) {b.clear();}
+  sortPrimitivesInDimension(primitives, start, end, Axis::Z);
+  // assign primitives to buckets
+  stride = (z_max - z_min)/NUM_BUCKETS;
+  for (auto i = start; i < end; ++i) {
+    Vector3D centroid = getPrimitiveCentroid(primitives[i]);
+    size_t bucket_id = (size_t) ((centroid.z - z_min) / stride);
+    buckets[bucket_id].addPrimitive(primitives[i], i);
+  }
+
+  // iterate and get best partition
+  for (auto i = 0; i < NUM_BUCKETS - 1; ++i) {
+    cost = SAH(root_bb, buckets, i);
+    if (cost < best_cost) {
+      best_cost = cost;
+      best_partition = i;
+      best_dimension = Axis::Z;
     }
   }
 
   // ***** Split  *****
   BVHNode* l = new BVHNode(),
          * r = new BVHNode();
+//  cout << "axis " << best_dimension << endl;
+  switch (best_dimension){
+    case Axis::X: {
+//      cout << "X: partition " << best_partition << ", SAH is " << best_cost << endl;
+      double partition_line = x_min + (x_max - x_min) / NUM_BUCKETS * (best_partition + 1);
 
-  if (best_dimension == 'x') {
-    cout << "X: partition plane is " << best_partition  << ", SAH is " << best_cost << endl;
-    double partition_line = x_min + (x_max - x_min) / NUM_BUCKETS * (best_partition + 1);
-
-    sortPrimitivesInDimension(primitives, start, end, 'x');
-    for (auto i = start; i < end; ++i) {
-      Vector3D centroid = getPrimitiveCentroid(primitives[i]);
-      if (centroid.x < partition_line)
-        l->addPrimitive(primitives[i], i);
-      else
-        r->addPrimitive(primitives[i], i);
+      sortPrimitivesInDimension(primitives, start, end, Axis::X);
+      for (auto i = start; i < end; ++i) {
+        Vector3D centroid = getPrimitiveCentroid(primitives[i]);
+        if (centroid.x < partition_line)
+          l->addPrimitive(primitives[i], i);
+        else
+          r->addPrimitive(primitives[i], i);
+      }
+      break;
     }
-  } else if (best_dimension == 'y') {
-    cout << "Y: partition plane is " << best_partition  << ", SAH is " << best_cost << endl;
-    double partition_line = y_min + (y_max - y_min) / NUM_BUCKETS * (best_partition + 1);
+    case Axis::Y: {
+//      cout << "Y: partition " << best_partition  << ", SAH is " << best_cost << endl;
+      double partition_line = y_min + (y_max - y_min) / NUM_BUCKETS * (best_partition + 1);
 
-    sortPrimitivesInDimension(primitives, start, end, 'y');
-    for (auto i = start; i < end; ++i) {
-      Vector3D centroid = getPrimitiveCentroid(primitives[i]);
-      if (centroid.y < partition_line)
-        l->addPrimitive(primitives[i], i);
-      else
-        r->addPrimitive(primitives[i], i);
+      sortPrimitivesInDimension(primitives, start, end, Axis::Y);
+      for (auto i = start; i < end; ++i) {
+        Vector3D centroid = getPrimitiveCentroid(primitives[i]);
+        if (centroid.y < partition_line)
+          l->addPrimitive(primitives[i], i);
+        else
+          r->addPrimitive(primitives[i], i);
+      }
+      break;
     }
+    case Axis::Z: {
+//      cout << "Z: partition " << best_partition << ", SAH is " << best_cost << endl;
+      double partition_line = z_min + (z_max - z_min) / NUM_BUCKETS * (best_partition + 1);
+
+      sortPrimitivesInDimension(primitives, start, end, Axis::Z);
+      for (auto i = start; i < end; ++i) {
+        Vector3D centroid = getPrimitiveCentroid(primitives[i]);
+        if (centroid.z < partition_line)
+          l->addPrimitive(primitives[i], i);
+        else
+          r->addPrimitive(primitives[i], i);
+      }
+      break;
+    }
+    default:
+      cout << "No partition is found!" << endl;
+      for (auto i = start; i < end; ++i) {
+        cout << primitives[i]->get_bbox() << endl;
+      }
   }
+
+//  cout << l->range << " " << r->range << endl;
   root->l = l;
   root->r = r;
-  buildBVHRecursively(l, max_leaf_size);
-  buildBVHRecursively(r, max_leaf_size);
 }
 
 // retrieves primitive centroid if it is either
@@ -149,8 +197,16 @@ Vector3D BVHAccel::getPrimitiveCentroid(Primitive* t) {
   return Vector3D();
 }
 
-void BVHAccel::sortPrimitivesInDimension(std::vector<Primitive*>& primitives, size_t start, size_t end, char dim) {
-  if (dim == 'x')
+void BVHAccel::sortPrimitivesInDimension(std::vector<Primitive*>& primitives, size_t start, size_t end, Axis dim) {
+  if (dim == Axis::X)
+    std::sort(
+            primitives.begin() + start,
+            primitives.begin() + end,
+            [] (Primitive* p1, Primitive* p2) -> bool {
+                return getPrimitiveCentroid(p1).x < getPrimitiveCentroid(p2).x;
+            }
+    );
+  else if (dim == Axis::Y)
     std::sort(
             primitives.begin() + start,
             primitives.begin() + end,
@@ -158,15 +214,7 @@ void BVHAccel::sortPrimitivesInDimension(std::vector<Primitive*>& primitives, si
                 return getPrimitiveCentroid(p1).y < getPrimitiveCentroid(p2).y;
             }
     );
-  else if (dim == 'y')
-    std::sort(
-            primitives.begin() + start,
-            primitives.begin() + end,
-            [] (Primitive* p1, Primitive* p2) -> bool {
-                return getPrimitiveCentroid(p1).y < getPrimitiveCentroid(p2).y;
-            }
-    );
-  else if (dim == 'z')
+  else if (dim == Axis::Z)
     std::sort(
             primitives.begin() + start,
             primitives.begin() + end,
@@ -195,9 +243,17 @@ double BVHAccel::SAH(const BBox& parent_bb,const std::vector<BVHNode>& buckets, 
 }
 
 BVHAccel::~BVHAccel() {
-  // TODO (PathTracer):
-  // Implement a proper destructor for your BVH accelerator aggregate
-
+  vector<BVHNode*> stack;
+  stack.push_back(root);
+  while (!stack.empty()) {
+    BVHNode* bvh = stack.back();
+    stack.pop_back();
+    if (!bvh->isLeaf()) {
+      stack.push_back(bvh->l);
+      stack.push_back(bvh->r);
+    }
+    delete bvh;
+  }
 }
 
 BBox BVHAccel::get_bbox() const { return root->bb; }

@@ -9,6 +9,13 @@
 namespace CMU462 {
 namespace StaticScene {
 
+enum Axis {
+    X = 0,
+    Y = 1,
+    Z = 2,
+    U = 3
+};
+
 /**
  * A node in the BVH accelerator aggregate.
  * The accelerator uses a "flat tree" structure where all the primitives are
@@ -21,7 +28,9 @@ namespace StaticScene {
  */
 struct BVHNode {
   BVHNode()
-      : bb(BBox()), start(std::numeric_limits<size_t>::max()), range(0), l(NULL), r(NULL) {}
+      : start(std::numeric_limits<size_t>::max()), range(0), l(NULL), r(NULL) {
+    bb = BBox();
+  }
 
   BVHNode(BBox bb, size_t start, size_t range)
       : bb(bb), start(start), range(range), l(NULL), r(NULL) {}
@@ -129,7 +138,7 @@ class BVHAccel : public Aggregate {
   void buildBVHRecursively(BVHNode* root, size_t max_leaf_size);
 
   static Vector3D getPrimitiveCentroid(Primitive* t);
-  static void sortPrimitivesInDimension(std::vector<Primitive*>& primitives, size_t start, size_t end, char dim);
+  static void sortPrimitivesInDimension(std::vector<Primitive*>& primitives, size_t start, size_t end, Axis dim);
 
   BVHNode* root;  ///< root node of the BVH
 };
