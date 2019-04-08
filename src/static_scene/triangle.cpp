@@ -18,17 +18,47 @@ BBox Triangle::get_bbox() const {
 }
 
 bool Triangle::intersect(const Ray& r) const {
-  // TODO (PathTracer): implement ray-triangle intersection
-
-  return false;
+  return intersect(r, NULL);
 }
 
 bool Triangle::intersect(const Ray& r, Intersection* isect) const {
-  // TODO (PathTracer):
-  // implement ray-triangle intersection. When an intersection takes
-  // place, the Intersection data should be updated accordingly
+  Vector3D p0 = mesh->positions[v1],
+           p1 = mesh->positions[v2],
+           p2 = mesh->positions[v3];
+  Vector3D n0 = mesh->normals[v1],
+           n1 = mesh->normals[v2],
+           n2 = mesh->normals[v3];
+  Vector3D e1 = p1 - p0,
+           e2 = p2 - p0,
+           s = r.o - p0;
 
-  return false;
+  Vector3D e1_c_d = cross(e1, r.d);
+  Vector3D s_c_e2 = cross(s, e2);
+  double denominator = dot(e1_c_d, e2);
+  if (abs(denominator) < std::numeric_limits<double>::min())
+    return false;
+
+  Vector3D nominator = Vector3D(
+          - dot(s_c_e2, r.d),
+            dot((e1_c_d), s),
+          - dot(s_c_e2, e1)
+  );
+  Vector3D res = denominator * nominator;
+
+  if (res.x < 0 || res.x > 1
+          || res.y < 0 || res.y > 1
+          || res.z < r.min_t || res.z > r.max_t)
+    return false;
+
+  // a hit is found
+  r.max_t = res.z;
+  if (isect != NULL) {
+    isect->t = res.z;
+    isect->primitive = this;
+    isect->bsdf = mesh->get_bsdf();
+    isect->n = (1-res.x-res.y)*n0 + res.x*n1 + res.y * n2;
+  }
+  return true;
 }
 
 void Triangle::draw(const Color& c) const {
