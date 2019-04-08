@@ -66,6 +66,7 @@ class Camera {
   double v_fov() const { return vFov; }
   double aspect_ratio() const { return ar; }
   double near_clip() const { return nClip; }
+  double far_clip() const { return fClip; }
 
   /*
    * Returns the worldspace -> cameraspace transformation matrix
