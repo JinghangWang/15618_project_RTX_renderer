@@ -43,11 +43,15 @@ bool Triangle::intersect(const Ray& r, Intersection* isect) const {
             dot((e1_c_d), s),
           - dot(s_c_e2, e1)
   );
-  Vector3D res = denominator * nominator;
+  Vector3D res = nominator / denominator;
 
-  if (res.x < 0 || res.x > 1
-          || res.y < 0 || res.y > 1
-          || res.z < r.min_t || res.z > r.max_t)
+  if (res.x < 0 || res.x > 1.0)
+    return false;
+  if (res.y < 0 || res.y > 1.0)
+    return false;
+  if (res.x + res.y > 1)
+    return false;
+  if (res.z < r.min_t || res.z > r.max_t)
     return false;
 
   // a hit is found
@@ -56,7 +60,11 @@ bool Triangle::intersect(const Ray& r, Intersection* isect) const {
     isect->t = res.z;
     isect->primitive = this;
     isect->bsdf = mesh->get_bsdf();
-    isect->n = (1-res.x-res.y)*n0 + res.x*n1 + res.y * n2;
+    Vector3D n = (1-res.x-res.y)*n0 + res.x*n1 + res.y*n2;
+    if (dot(n, r.d) > 0) {
+      n = -n;
+    }
+    isect->n = n;
   }
   return true;
 }
