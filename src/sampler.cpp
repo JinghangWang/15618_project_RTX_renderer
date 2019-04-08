@@ -7,8 +7,9 @@ namespace CMU462 {
 Vector2D UniformGridSampler2D::get_sample() const {
   // TODO (PathTracer):
   // Implement uniform 2D grid sampler
-  
-  return Vector2D(0.5, 0.5);
+  double X = (double)(std::rand()) / RAND_MAX;
+  double Y = (double)(std::rand()) / RAND_MAX;
+  return Vector2D(X, Y);
 }
 
 // Uniform Hemisphere Sampler3D Implementation //

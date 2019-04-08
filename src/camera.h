@@ -66,13 +66,17 @@ class Camera {
   double v_fov() const { return vFov; }
   double aspect_ratio() const { return ar; }
   double near_clip() const { return nClip; }
-  double far_clip() const { return fClip; }
 
   /*
    * Returns the worldspace -> cameraspace transformation matrix
    * (the view matrix)
    */
   Matrix4x4 getTransformation();
+
+  /*
+   * Returns the cameraspace -> worldspace transformation matrix
+   */
+  Matrix4x4 getTransformationCameraToWorld() const;
 
   /**
    * Returns a world-space ray from the camera that corresponds to a
