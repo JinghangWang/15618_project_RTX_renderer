@@ -20,6 +20,9 @@ namespace StaticScene {
  * constructing the BVH.
  */
 struct BVHNode {
+  BVHNode()
+      : bb(BBox()), start(std::numeric_limits<size_t>::max()), range(0), l(NULL), r(NULL) {}
+
   BVHNode(BBox bb, size_t start, size_t range)
       : bb(bb), start(start), range(range), l(NULL), r(NULL) {}
 
@@ -30,6 +33,9 @@ struct BVHNode {
   size_t range;  ///< range of index into the primitive list
   BVHNode* l;    ///< left child node
   BVHNode* r;    ///< right child node
+
+  void clear();
+  void addPrimitive(const Primitive* t, size_t i);
 };
 
 /**
@@ -115,6 +121,16 @@ class BVHAccel : public Aggregate {
   void drawOutline(const Color& c) const {}
 
  private:
+  /**
+   * Calculates the cost of a specific partition
+   */
+  double SAH(const BBox& parent_bb, const std::vector<BVHNode>& buckets, size_t partition_plane);
+
+  void buildBVHRecursively(BVHNode* root, size_t max_leaf_size);
+
+  static Vector3D getPrimitiveCentroid(Primitive* t);
+  static void sortPrimitivesInDimension(std::vector<Primitive*>& primitives, size_t start, size_t end, char dim);
+
   BVHNode* root;  ///< root node of the BVH
 };
 

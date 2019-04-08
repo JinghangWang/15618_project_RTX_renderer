@@ -67,5 +67,9 @@ void Sphere::drawOutline(const Color& c) const {
   // Misc::draw_sphere_opengl(o, r, c);
 }
 
+Vector3D Sphere::getCentroid() const {
+  return o;
+}
+
 }  // namespace StaticScene
 }  // namespace CMU462

@@ -11,10 +11,14 @@ Triangle::Triangle(const Mesh* mesh, size_t v1, size_t v2, size_t v3)
     : mesh(mesh), v1(v1), v2(v2), v3(v3) {}
 
 BBox Triangle::get_bbox() const {
-  // TODO (PathTracer):
-  // compute the bounding box of the triangle
-
-  return BBox();
+  Vector3D p0 = mesh->positions[v1],
+           p1 = mesh->positions[v2],
+           p2 = mesh->positions[v3];
+  BBox bb;
+  bb.expand(p0);
+  bb.expand(p1);
+  bb.expand(p2);
+  return bb;
 }
 
 bool Triangle::intersect(const Ray& r) const {
@@ -91,6 +95,13 @@ void Triangle::drawOutline(const Color& c) const {
   glVertex3d(mesh->positions[v3].x, mesh->positions[v3].y,
              mesh->positions[v3].z);
   glEnd();
+}
+
+Vector3D Triangle::getCentroid() const {
+  Vector3D p0 = mesh->positions[v1],
+           p1 = mesh->positions[v2],
+           p2 = mesh->positions[v3];
+  return (p0 + p1 + p2)/3;
 }
 
 }  // namespace StaticScene

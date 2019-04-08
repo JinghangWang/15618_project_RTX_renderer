@@ -61,6 +61,7 @@ class Primitive {
    * \param c desired highlight color
    */
   virtual void drawOutline(const Color& c) const = 0;
+
 };
 
 }  // namespace StaticScene

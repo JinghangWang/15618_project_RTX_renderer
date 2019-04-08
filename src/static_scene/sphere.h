@@ -80,6 +80,8 @@ class Sphere : public Primitive {
   */
   void drawOutline(const Color& c) const;
 
+  Vector3D getCentroid() const;
+
  private:
   /**
    * Tests for ray-sphere intersection, returning true if there are
