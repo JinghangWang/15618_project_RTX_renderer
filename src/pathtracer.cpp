@@ -469,10 +469,11 @@ Spectrum PathTracer::trace_ray(const Ray &r) {
         // evaluate surface bsdf
         const Spectrum& f = isect.bsdf->f(w_out, w_in);
 
-        // TODO (PathTracer):
         // (Task 4) Construct a shadow ray and compute whether the intersected surface is
         // in shadow. Only accumulate light if not in shadow.
-        L_out += (cos_theta / (num_light_samples * pr)) * f * light_L;
+        Ray shadow_ray = Ray(hit_p + EPS_D * dir_to_light, dir_to_light);
+        if (!bvh->intersect(shadow_ray))
+          L_out += (cos_theta / (num_light_samples * pr)) * f * light_L;
       }
     }
   }
@@ -516,7 +517,7 @@ Spectrum PathTracer::raytrace_pixel(size_t x, size_t y) {
             sy / sampleBuffer.h
     );
   }
-  return total * (double)(1 / num_samples);
+  return total * (double)(1.0 / num_samples);
 }
 
 Spectrum PathTracer::raytrace_sample(double x, double y) {
