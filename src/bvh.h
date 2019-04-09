@@ -139,6 +139,8 @@ class BVHAccel : public Aggregate {
 
   static Vector3D getPrimitiveCentroid(Primitive* t);
   static void sortPrimitivesInDimension(std::vector<Primitive*>& primitives, size_t start, size_t end, Axis dim);
+  bool intersectHelper(const Ray &ray, const BVHNode* node, Intersection* isect) const;
+  bool intersectLeafNode(const Ray &ray, const BVHNode* node, Intersection* isect) const;
 
   BVHNode* root;  ///< root node of the BVH
 };

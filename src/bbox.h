@@ -124,6 +124,14 @@ struct BBox {
   bool intersect(const Ray &r, double &t0, double &t1) const;
 
   /**
+    * Ray - bbox intersection.
+    * Intersects ray with bounding box, does not store shading information.
+    * \param r the ray to intersect with
+    * INF_D for no hit
+    */
+  double intersect(const Ray &r) const;
+
+  /**
     * Draw box wireframe with OpenGL.
     * \param c color of the wireframe
     */

@@ -16,6 +16,64 @@ bool BBox::intersect(const Ray &r, double &t0, double &t1) const {
   return false;
 }
 
+double BBox::intersect(const Ray &r) const {
+  double closedt_t = INF_D;
+  // x planes
+  if (r.d.x != 0) {
+    double t1 = (min.x - r.o.x) * r.inv_d.x;
+    double t2 = (max.x - r.o.x) * r.inv_d.x;
+    if (t1 > r.min_t && t1 < r.max_t && t1 < closedt_t) {
+      Vector3D p1 = r.o + t1 * r.d;
+      if (p1.y >= min.y && p1.y <= max.y
+        && p1.z >= min.z && p1.z <= max.z)
+        closedt_t = t1;
+    }
+    if (t2 > r.min_t && t2 < r.max_t && t2 < closedt_t) {
+      Vector3D p2 = r.o + t2 * r.d;
+      if (p2.y >= min.y && p2.y <= max.y
+        && p2.z >= min.z && p2.z <= max.z)
+        closedt_t = t2;
+    }
+  }
+
+  // y planes
+  if (r.d.y != 0) {
+    double t1 = (min.y - r.o.y) * r.inv_d.y;
+    double t2 = (max.y - r.o.y) * r.inv_d.y;
+    if (t1 > r.min_t && t1 < r.max_t && t1 < closedt_t) {
+      Vector3D p1 = r.o + t1 * r.d;
+      if (p1.x >= min.x && p1.x <= max.x
+          && p1.z >= min.z && p1.z <= max.z)
+        closedt_t = t1;
+    }
+    if (t2 > r.min_t && t2 < r.max_t && t2 < closedt_t) {
+      Vector3D p2 = r.o + t2 * r.d;
+      if (p2.x >= min.x && p2.x <= max.x
+          && p2.z >= min.z && p2.z <= max.z)
+        closedt_t = t2;
+    }
+  }
+
+  // z planes
+  if (r.d.z != 0) {
+    double t1 = (min.z - r.o.z) * r.inv_d.z;
+    double t2 = (max.z - r.o.z) * r.inv_d.z;
+    if (t1 > r.min_t && t1 < r.max_t && t1 < closedt_t) {
+      Vector3D p1 = r.o + t1 * r.d;
+      if (p1.y >= min.y && p1.y <= max.y
+          && p1.x >= min.x && p1.x <= max.x)
+        closedt_t = t1;
+    }
+    if (t2 > r.min_t && t2 < r.max_t && t2 < closedt_t) {
+      Vector3D p2 = r.o + t2 * r.d;
+      if (p2.y >= min.y && p2.y <= max.y
+          && p2.x >= min.x && p2.x <= max.x)
+        closedt_t = t2;
+    }
+  }
+  return closedt_t;
+}
+
 void BBox::draw(Color c) const {
   glColor4f(c.r, c.g, c.b, c.a);
 

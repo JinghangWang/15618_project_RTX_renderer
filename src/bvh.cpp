@@ -259,32 +259,51 @@ BVHAccel::~BVHAccel() {
 BBox BVHAccel::get_bbox() const { return root->bb; }
 
 bool BVHAccel::intersect(const Ray &ray) const {
-  // TODO (PathTracer):
-  // Implement ray - bvh aggregate intersection test. A ray intersects
-  // with a BVH aggregate if and only if it intersects a primitive in
-  // the BVH that is not an aggregate.
-
-  bool hit = false;
-  for (size_t p = 0; p < primitives.size(); ++p) {
-    if (primitives[p]->intersect(ray)) hit = true;
-  }
-
-  return hit;
+  Intersection _isect;
+  return intersectHelper(ray, root, &_isect);
 }
 
 bool BVHAccel::intersect(const Ray &ray, Intersection *isect) const {
-  // TODO (PathTracer):
-  // Implement ray - bvh aggregate intersection test. A ray intersects
-  // with a BVH aggregate if and only if it intersects a primitive in
-  // the BVH that is not an aggregate. When an intersection does happen.
-  // You should store the non-aggregate primitive in the intersection data
-  // and not the BVH aggregate itself.
+  return intersectHelper(ray, root, isect);
+}
 
-  bool hit = false;
-  for (size_t p = 0; p < primitives.size(); ++p) {
-    if (primitives[p]->intersect(ray, isect)) hit = true;
+bool BVHAccel::intersectHelper(const Ray &ray, const BVHNode* node, Intersection* isect) const {
+  if (node->isLeaf()) {
+    return intersectLeafNode(ray, node, isect);
+  } else {
+    double hit1 = node->l->bb.intersect(ray);
+    double hit2 = node->r->bb.intersect(ray);
+    BVHNode *first = NULL,
+            *second = NULL;
+    if (hit1 != INF_D && hit2 != INF_D) {
+      if (hit1 <= hit2) {
+        first = node->l;
+        second = node->r;
+      } else {
+        first = node->r;
+        second = node->l;
+        std::swap(hit1, hit2);
+      }
+    } else if (hit1 != INF_D) {
+      first = node->l;
+    } else if (hit2 != INF_D) {
+      first = node->r;
+    }
+
+    bool hit = false;
+    if (first != NULL)
+      hit = intersectHelper(ray, first, isect);
+    if (second != NULL && hit2 < isect->t)
+      hit |= intersectHelper(ray, second, isect);
+    return hit;
   }
+}
 
+bool BVHAccel::intersectLeafNode(const Ray &ray, const BVHNode* node, Intersection* isect) const {
+  bool hit = false;
+  for (auto i = node->start; i < node->start + node->range; ++i) {
+    if (primitives[i]->intersect(ray, isect)) hit = true;
+  }
   return hit;
 }
 
