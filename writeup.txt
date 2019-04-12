@@ -1,15 +1,8 @@
 AndrewID: jinghanw
 
 Checkpoint:
-    local operations implemented:
-        - EdgeFlip
-        - FaceBevel
-        - CollapseEdge
-        - EraseVertex
-        - EraseEdge
+    task 1: implemented
+    task 2: implemented
+    task 3: implemented
+    task 4: implemented
 
-    global operations implemented:
-        - triangulation
-        - linear subdivision
-        - CatmullClark subdivision
-        - Simplification
