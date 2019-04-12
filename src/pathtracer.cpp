@@ -394,7 +394,6 @@ void PathTracer::key_press(int key) {
 
 Spectrum PathTracer::trace_ray(const Ray &r) {
   Intersection isect;
-
   if (!bvh->intersect(r, &isect)) {
 // log ray miss
 #ifdef ENABLE_RAY_LOGGING
@@ -411,15 +410,14 @@ Spectrum PathTracer::trace_ray(const Ray &r) {
 #ifdef ENABLE_RAY_LOGGING
   log_ray_hit(r, isect.t);
 #endif
-
-  Spectrum L_out = isect.bsdf->get_emission();  // Le
+  Spectrum L_out;
+  L_out += isect.bsdf->get_emission();  // Le
 
   // TODO (PathTracer):
   // Instead of initializing this value to a constant color, use the direct,
   // indirect lighting components calculated in the code below. The starter
   // code overwrites L_out by (.5,.5,.5) so that you can test your geometry
   // queries before you implement path tracing.
-//  L_out = Spectrum(5.f, 5.f, 5.f);
 
   Vector3D hit_p = r.o + r.d * isect.t;
   Vector3D hit_n = isect.n;
@@ -480,20 +478,40 @@ Spectrum PathTracer::trace_ray(const Ray &r) {
 
   // TODO (PathTracer):
   // ### (Task 5) Compute an indirect lighting estimate using pathtracing with Monte Carlo.
+  if (r.depth < max_ray_depth) {
+    Vector3D w_in;
+    float pdf;
+    // Note that Ray objects have a depth field now; you should use this to avoid
+    // traveling down one path forever.
 
+    // (1) randomly select a new ray direction (it may be
+    // reflection or transmittence ray depending on
+    // surface type -- see BSDF::sample_f()
+    isect.bsdf->sample_f(w_out, &w_in, &pdf);
+    pdf = clamp(pdf, 0, 1);
+//    cout << "pdf " << pdf;
 
-  // Note that Ray objects have a depth field now; you should use this to avoid
-  // traveling down one path forever.
-  
-  // (1) randomly select a new ray direction (it may be
-  // reflection or transmittence ray depending on
-  // surface type -- see BSDF::sample_f()
+    // (2) potentially terminate path (using Russian roulette)
+    const Spectrum f = isect.bsdf->f(w_out, w_in);
+    float terminationP = 1.f - f.illum();
+//    cout << "\tterminationP " << terminationP;
 
-  // (2) potentially terminate path (using Russian roulette)
-
-  // (3) evaluate weighted reflectance contribution due 
-  // to light from this direction
-
+    // (3) evaluate weighted reflectance contribution due
+    // to light from this direction
+    float rr = randFloat();
+//    if (rr > terminationP) {
+      double cos_theta = w_in.z;
+      // w_in is actually the direction opposite to incident direction
+      Vector3D dir_next_ray = o2w * w_in;
+      Ray next_r = Ray(hit_p + EPS_D * dir_next_ray, dir_next_ray, (int)r.depth + 1);
+      Spectrum L_i = cos_theta * f * trace_ray(next_r) * (1.0/(pdf));
+      if (r.depth == 0) {
+//        cout << "L_i: " << L_i << endl;
+      }
+      L_out += L_i;
+//    }
+  }
+//  cout << endl;
   return L_out;
 }
 

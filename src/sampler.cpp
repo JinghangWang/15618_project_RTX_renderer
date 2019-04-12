@@ -1,11 +1,12 @@
 #include "sampler.h"
 
+#include <iostream>
+
 namespace CMU462 {
 
 // Uniform Sampler2D Implementation //
 
 Vector2D UniformGridSampler2D::get_sample() const {
-  // TODO (PathTracer):
   // Implement uniform 2D grid sampler
   double X = (double)(std::rand()) / RAND_MAX;
   double Y = (double)(std::rand()) / RAND_MAX;
@@ -34,8 +35,19 @@ Vector3D CosineWeightedHemisphereSampler3D::get_sample() const {
 }
 
 Vector3D CosineWeightedHemisphereSampler3D::get_sample(float *pdf) const {
-  // You may implement this, but don't have to.
-  return Vector3D(0, 0, 1);
+  double d1 = randDouble();
+  double d2 = randDouble();
+
+  double phi = 2 * PI * d1;
+  double z = sqrt(d2);
+  double theta = acos(z);
+  *pdf = (float) z / PI;
+  Vector3D dir =  Vector3D(
+          z * sin(phi) * tan(theta),
+          z * cos(phi) * tan(theta),
+          z
+  );
+  return dir;
 }
 
 }  // namespace CMU462

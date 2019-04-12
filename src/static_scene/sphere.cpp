@@ -10,27 +10,6 @@ namespace StaticScene {
 
 bool Sphere::test(const Ray& r, double& t1, double& t2) const {
   // TODO (PathTracer):
-  // Implement ray - sphere intersection test.
-  // Return true if there are intersections and writing the
-  // smaller of the two intersection times in t1 and the larger in t2.
-  
-  return false;
-}
-
-bool Sphere::intersect(const Ray& r) const {
-  // TODO (PathTracer):
-  // Implement ray - sphere intersection.
-  // Note that you might want to use the the Sphere::test helper here.
-
-  return false;
-}
-
-bool Sphere::intersect(const Ray& r, Intersection* isect) const {
-  // TODO (PathTracer):
-  // Implement ray - sphere intersection.
-  // Note again that you might want to use the the Sphere::test helper here.
-  // When an intersection takes place, the Intersection data should be updated
-  // correspondingly.
   double a, b, c;
   Vector3D rel_o = r.o - o;
   a = dot(r.d, r.d);
@@ -40,24 +19,44 @@ bool Sphere::intersect(const Ray& r, Intersection* isect) const {
   if (test < 0)
     return false;
 
-  double t;
   if (abs(test) < std::numeric_limits<double>::min()) {
-    t = -b / (2*a);
+    t1 = -b / (2*a);
+    t2 = -INF_D;
   } else {
-    t = (-b - sqrt(test)) / (2*a);
+    t1 = (-b - sqrt(test)) / (2*a);
+    t2 = (-b + sqrt(test)) / (2*a);
+    assert(t1 < t2);
   }
-  if (t < r.min_t || t > r.max_t)
+  return true;
+}
+
+bool Sphere::intersect(const Ray& r) const {
+  return intersect(r, NULL);
+}
+
+bool Sphere::intersect(const Ray& r, Intersection* isect) const {
+  // Implement ray - sphere intersection.
+  // Note again that you might want to use the the Sphere::test helper here.
+  // When an intersection takes place, the Intersection data should be updated
+  // correspondingly.
+  double t1, t2, t;
+
+  test(r, t1, t2);
+  // a hit is found
+  if (t1 > r.min_t && t1 < r.max_t)
+    t = t1;
+  else if (t2 > r.min_t && t2 < r.max_t)
+    t = t2;
+  else
     return false;
 
-  // a hit is found
   r.max_t = t;
-  if (isect != NULL) {
+  if (isect) {
     isect->t = t;
     isect->primitive = this;
     isect->bsdf = object->get_bsdf();
     isect->n = normal(r.o + t*r.d);
   }
-
   return true;
 }
 

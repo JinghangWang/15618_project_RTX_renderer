@@ -7,6 +7,9 @@
 
 namespace CMU462 {
 
+inline double randDouble() {return (double)(std::rand()) / RAND_MAX; };
+inline float randFloat() {return (float)(std::rand()) / RAND_MAX; };
+
 /**
  * Interface for generating point samples within the unit square
  */
