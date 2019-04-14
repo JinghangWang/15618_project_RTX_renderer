@@ -409,7 +409,7 @@ Spectrum PathTracer::trace_ray(const Ray &r) {
   if (!bvh->intersect(r, &isect)) {
 // log ray miss
 #ifdef ENABLE_RAY_LOGGING
-    log_ray_miss(r);
+//    log_ray_miss(r);
 #endif
 
     // TODO (PathTracer):
@@ -489,13 +489,14 @@ Spectrum PathTracer::trace_ray(const Ray &r) {
                 dir_to_light,
                 dist_to_light
         );
-        if (!bvh->intersect(shadow_ray))
+        Intersection shadow_sect;
+        if (!bvh->intersect(shadow_ray, &shadow_sect)) {
           L_out += (cos_theta / (num_light_samples * pr)) * f * light_L;
+        }
       }
     }
   }
 
-  // TODO (PathTracer):
   // ### (Task 5) Compute an indirect lighting estimate using pathtracing with Monte Carlo.
   if (r.depth < max_ray_depth) {
     // (1) randomly select a new ray direction (it may be
@@ -508,7 +509,10 @@ Spectrum PathTracer::trace_ray(const Ray &r) {
 
     // (2) potentially terminate path (using Russian roulette)
     const Spectrum f = isect.bsdf->f(w_out, w_in);
-    terminationP = (double)1.f - f.illum();
+    double cos_theta = w_in.z;
+    assert(cos_theta > 0);
+    terminationP = (double)1.f - f.illum()*cos_theta/pdf;
+//    terminationP = (double)1.f - f.illum();
     terminationP = clamp(terminationP, 0, 1);
 
     // (3) evaluate weighted reflectance contribution due
@@ -516,7 +520,6 @@ Spectrum PathTracer::trace_ray(const Ray &r) {
     double rr = randDouble();
     if (rr > terminationP) {
       // w_in is actually the direction opposite to incident direction
-      double cos_theta = w_in.z;
       Vector3D dir = o2w * w_in;
       Vector3D origin = hit_p + EPS_D * dir;
       int depth = r.depth + 1;
@@ -525,11 +528,10 @@ Spectrum PathTracer::trace_ray(const Ray &r) {
               dir,
               depth
       );
-      Spectrum L_i = cos_theta * f * trace_ray(next_r) * (1.l/(pdf * (1.l-terminationP)));
+      Spectrum L_i = f * trace_ray(next_r) * (cos_theta / (pdf * (1.l-terminationP)));
       L_out += L_i;
     }
   }
-//  cout << endl;
   clampSpecturm(L_out);
   return L_out;
 }

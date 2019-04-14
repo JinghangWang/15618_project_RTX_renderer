@@ -27,9 +27,9 @@ using CMU462::StaticScene::BVHAccel;
 namespace CMU462 {
 
 inline void clampSpecturm(Spectrum& l){
-  clamp(l.r, 0l, 1l);
-  clamp(l.g, 0l, 1l);
-  clamp(l.b, 0l, 1l);
+  l.r = clamp(l.r, 0l, 1l);
+  l.g = clamp(l.g, 0l, 1l);
+  l.b = clamp(l.b, 0l, 1l);
 }
 
 

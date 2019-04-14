@@ -136,6 +136,11 @@ struct BBox {
     * \param c color of the wireframe
     */
   void draw(Color c) const;
+
+  /**
+   * returns whether the point is contained in the bounding box
+   */
+  bool contains(const Vector3D& p) const;
 };
 
 std::ostream &operator<<(std::ostream &os, const BBox &b);
