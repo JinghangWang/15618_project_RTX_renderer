@@ -343,6 +343,17 @@ void PathTracer::visualize_accel() const {
 
       glVertex3f(rayLog[i].o[0], rayLog[i].o[1], rayLog[i].o[2]);
       glVertex3f(end[0], end[1], end[2]);
+
+      ray_t = VERY_LONG;
+      if (rayLog[i+1].hit_t >= 0.0) {
+        ray_t = rayLog[i+1].hit_t;
+        glColor4f(1.f, 1.f, 0.f, 0.1f);
+      } else {
+        glColor4f(1.f, 0.f, 0.f, 0.1f);
+      }
+      end = rayLog[i+1].o + ray_t * rayLog[i+1].d;
+      glVertex3f(rayLog[i+1].o[0], rayLog[i+1].o[1], rayLog[i+1].o[2]);
+      glVertex3f(end[0], end[1], end[2]);
     }
     glEnd();
   }
@@ -393,6 +404,7 @@ void PathTracer::key_press(int key) {
 
 
 Spectrum PathTracer::trace_ray(const Ray &r) {
+  // log first bounce
   Intersection isect;
   if (!bvh->intersect(r, &isect)) {
 // log ray miss
@@ -406,12 +418,15 @@ Spectrum PathTracer::trace_ray(const Ray &r) {
     return Spectrum(0, 0, 0);
   }
 
+  // trace original ray hits
+  if (r.depth == 0) {
+//    log_ray_hit(r, isect.t);
+  }
 // log ray hit
 #ifdef ENABLE_RAY_LOGGING
   log_ray_hit(r, isect.t);
 #endif
-  Spectrum L_out;
-  L_out += isect.bsdf->get_emission();  // Le
+  Spectrum L_out = isect.bsdf->get_emission();  // Le
 
   // TODO (PathTracer):
   // Instead of initializing this value to a constant color, use the direct,
@@ -469,7 +484,11 @@ Spectrum PathTracer::trace_ray(const Ray &r) {
 
         // (Task 4) Construct a shadow ray and compute whether the intersected surface is
         // in shadow. Only accumulate light if not in shadow.
-        Ray shadow_ray = Ray(hit_p + EPS_D * dir_to_light, dir_to_light);
+        Ray shadow_ray = Ray(
+                hit_p + EPS_D * dir_to_light,
+                dir_to_light,
+                dist_to_light
+        );
         if (!bvh->intersect(shadow_ray))
           L_out += (cos_theta / (num_light_samples * pr)) * f * light_L;
       }
@@ -479,39 +498,39 @@ Spectrum PathTracer::trace_ray(const Ray &r) {
   // TODO (PathTracer):
   // ### (Task 5) Compute an indirect lighting estimate using pathtracing with Monte Carlo.
   if (r.depth < max_ray_depth) {
-    Vector3D w_in;
-    float pdf;
-    // Note that Ray objects have a depth field now; you should use this to avoid
-    // traveling down one path forever.
-
     // (1) randomly select a new ray direction (it may be
     // reflection or transmittence ray depending on
     // surface type -- see BSDF::sample_f()
+    Vector3D w_in;
+    float pdf, terminationP;
     isect.bsdf->sample_f(w_out, &w_in, &pdf);
     pdf = clamp(pdf, 0, 1);
-//    cout << "pdf " << pdf;
 
     // (2) potentially terminate path (using Russian roulette)
     const Spectrum f = isect.bsdf->f(w_out, w_in);
-    float terminationP = 1.f - f.illum();
-//    cout << "\tterminationP " << terminationP;
+    terminationP = (double)1.f - f.illum();
+    terminationP = clamp(terminationP, 0, 1);
 
     // (3) evaluate weighted reflectance contribution due
     // to light from this direction
-    float rr = randFloat();
-//    if (rr > terminationP) {
-      double cos_theta = w_in.z;
+    double rr = randDouble();
+    if (rr > terminationP) {
       // w_in is actually the direction opposite to incident direction
-      Vector3D dir_next_ray = o2w * w_in;
-      Ray next_r = Ray(hit_p + EPS_D * dir_next_ray, dir_next_ray, (int)r.depth + 1);
-      Spectrum L_i = cos_theta * f * trace_ray(next_r) * (1.0/(pdf));
-      if (r.depth == 0) {
-//        cout << "L_i: " << L_i << endl;
-      }
+      double cos_theta = w_in.z;
+      Vector3D dir = o2w * w_in;
+      Vector3D origin = hit_p + EPS_D * dir;
+      int depth = r.depth + 1;
+      Ray next_r = Ray(
+              origin,
+              dir,
+              depth
+      );
+      Spectrum L_i = cos_theta * f * trace_ray(next_r) * (1.l/(pdf * (1.l-terminationP)));
       L_out += L_i;
-//    }
+    }
   }
 //  cout << endl;
+  clampSpecturm(L_out);
   return L_out;
 }
 
@@ -533,9 +552,9 @@ Spectrum PathTracer::raytrace_pixel(size_t x, size_t y) {
     total += raytrace_sample(
             sx / sampleBuffer.w,
             sy / sampleBuffer.h
-    );
+    ) * (1.l / num_samples);
   }
-  return total * (double)(1.0 / num_samples);
+  return total;
 }
 
 Spectrum PathTracer::raytrace_sample(double x, double y) {

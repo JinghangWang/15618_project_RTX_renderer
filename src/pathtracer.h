@@ -26,6 +26,13 @@ using CMU462::StaticScene::BVHAccel;
 
 namespace CMU462 {
 
+inline void clampSpecturm(Spectrum& l){
+  clamp(l.r, 0l, 1l);
+  clamp(l.g, 0l, 1l);
+  clamp(l.b, 0l, 1l);
+}
+
+
 struct WorkItem {
   // Default constructor.
   WorkItem() : WorkItem(0, 0, 0, 0) {}

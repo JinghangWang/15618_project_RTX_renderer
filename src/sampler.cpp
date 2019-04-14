@@ -43,8 +43,8 @@ Vector3D CosineWeightedHemisphereSampler3D::get_sample(float *pdf) const {
   double theta = acos(z);
   *pdf = (float) z / PI;
   Vector3D dir =  Vector3D(
-          z * sin(phi) * tan(theta),
-          z * cos(phi) * tan(theta),
+          cos(phi) * sin(theta),
+          sin(phi) * sin(theta),
           z
   );
   return dir;

@@ -115,6 +115,7 @@ class DiffuseBSDF : public BSDF {
  private:
   Spectrum albedo;
   CosineWeightedHemisphereSampler3D sampler;
+  UniformHemisphereSampler3D uniform_sampler;
 
 };  // class DiffuseBSDF
 

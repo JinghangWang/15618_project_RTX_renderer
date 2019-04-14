@@ -9,7 +9,6 @@ namespace CMU462 {
 namespace StaticScene {
 
 bool Sphere::test(const Ray& r, double& t1, double& t2) const {
-  // TODO (PathTracer):
   double a, b, c;
   Vector3D rel_o = r.o - o;
   a = dot(r.d, r.d);
@@ -41,7 +40,8 @@ bool Sphere::intersect(const Ray& r, Intersection* isect) const {
   // correspondingly.
   double t1, t2, t;
 
-  test(r, t1, t2);
+  if (!test(r, t1, t2))
+    return false;
   // a hit is found
   if (t1 > r.min_t && t1 < r.max_t)
     t = t1;
