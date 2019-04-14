@@ -478,7 +478,7 @@ Spectrum PathTracer::trace_ray(const Ray &r) {
           // note that computing dot(n,w_in) is simple
         // in surface coordinates since the normal is (0,0,1)
         double cos_theta = w_in.z;
-          
+
         // evaluate surface bsdf
         const Spectrum& f = isect.bsdf->f(w_out, w_in);
 
@@ -489,8 +489,7 @@ Spectrum PathTracer::trace_ray(const Ray &r) {
                 dir_to_light,
                 dist_to_light
         );
-        Intersection shadow_sect;
-        if (!bvh->intersect(shadow_ray, &shadow_sect)) {
+        if (!bvh->intersect(shadow_ray)) {
           L_out += (cos_theta / (num_light_samples * pr)) * f * light_L;
         }
       }
@@ -510,7 +509,7 @@ Spectrum PathTracer::trace_ray(const Ray &r) {
     // (2) potentially terminate path (using Russian roulette)
     const Spectrum f = isect.bsdf->f(w_out, w_in);
     double cos_theta = w_in.z;
-    assert(cos_theta > 0);
+    assert(cos_theta >= 0);
     terminationP = (double)1.f - f.illum()*cos_theta/pdf;
 //    terminationP = (double)1.f - f.illum();
     terminationP = clamp(terminationP, 0, 1);

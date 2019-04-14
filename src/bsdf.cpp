@@ -48,13 +48,19 @@ Spectrum DiffuseBSDF::sample_f(const Vector3D& wo, Vector3D* wi, float* pdf) {
 // Mirror BSDF //
 
 Spectrum MirrorBSDF::f(const Vector3D& wo, const Vector3D& wi) {
-  return Spectrum();
+  Spectrum reflectance = Spectrum();
+  if (abs(-wo.x - wi.x) < EPS_D
+    && abs(-wo.y - wi.y) < EPS_D
+    && abs(wo.z - wi.z) < EPS_D) {
+    reflectance = 1.l / cos_theta(wo) * Spectrum(1,1,1);
+  }
+  return reflectance;
 }
 
 Spectrum MirrorBSDF::sample_f(const Vector3D& wo, Vector3D* wi, float* pdf) {
-  // TODO (PathTracer):
-  // Implement MirrorBSDF
-  return Spectrum();
+  reflect(wo, wi);
+  *pdf = 1;
+  return f(wo, *wi);
 }
 
 // Glossy BSDF //
@@ -97,8 +103,12 @@ Spectrum GlassBSDF::sample_f(const Vector3D& wo, Vector3D* wi, float* pdf) {
 }
 
 void BSDF::reflect(const Vector3D& wo, Vector3D* wi) {
-  // TODO (PathTracer):
   // Implement reflection of wo about normal (0,0,1) and store result in wi.
+  *wi = Vector3D(
+          -wo.x,
+          -wo.y,
+          wo.z
+  );
 }
 
 bool BSDF::refract(const Vector3D& wo, Vector3D* wi, float ior) {
