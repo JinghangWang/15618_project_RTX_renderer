@@ -45,6 +45,14 @@ class EnvironmentLight : public SceneLight {
 
  private:
   const HDRImageBuffer* envMap;
+  const size_t width, height;
+  std::vector<double> p_phi_cond_theta;
+  std::vector<double> p_theta;
+  std::vector<double> p_theta_cdf;
+
+  static void transformCoordinate(const Vector3D& w, double& theta, double& phi);
+
+  Spectrum getSample(double theta, double phi) const;
 };  // class EnvironmentLight
 
 }  // namespace StaticScene

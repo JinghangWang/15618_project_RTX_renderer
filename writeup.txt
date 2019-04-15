@@ -8,4 +8,4 @@ Checkpoint:
 
 Documentation:
     1. width and height of the image space is hard to locate (sampleBuffer)
-    2. 
+    2. cos_phi and sin_phi does not work as expected
