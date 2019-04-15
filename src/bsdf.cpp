@@ -49,10 +49,8 @@ Spectrum DiffuseBSDF::sample_f(const Vector3D& wo, Vector3D* wi, float* pdf) {
 
 Spectrum MirrorBSDF::f(const Vector3D& wo, const Vector3D& wi) {
   Spectrum reflectance = Spectrum();
-  if (abs(-wo.x - wi.x) < EPS_D
-    && abs(-wo.y - wi.y) < EPS_D
-    && abs(wo.z - wi.z) < EPS_D) {
-    reflectance = 1.l / cos_theta(wo) * Spectrum(1,1,1);
+  if (isReflection(wo, wi)) {
+    reflectance = 1.l / abs_cos_theta(wi) * Spectrum(1,1,1);
   }
   return reflectance;
 }
@@ -84,7 +82,6 @@ Spectrum RefractionBSDF::f(const Vector3D& wo, const Vector3D& wi) {
 
 Spectrum RefractionBSDF::sample_f(const Vector3D& wo, Vector3D* wi,
                                   float* pdf) {
-  // TODO (PathTracer):
   // Implement RefractionBSDF
   return Spectrum();
 }
@@ -92,14 +89,55 @@ Spectrum RefractionBSDF::sample_f(const Vector3D& wo, Vector3D* wi,
 // Glass BSDF //
 
 Spectrum GlassBSDF::f(const Vector3D& wo, const Vector3D& wi) {
+//  Vector3D w_reflect, w_refract;
+//  reflect(wo, &w_reflect);
+//  if (isRefraction(wo, wi, (double)ior)) {
+//    double r_para, r_perp;
+//    double eta_i = 1.0,
+//            eta_t = (double)ior;
+//    if (wo.z < 0) std::swap(eta_i, eta_t);
+//    double theta_i = abs_cos_theta(wo);
+//    double theta_t = abs_cos_theta(wi);
+//    r_para = (eta_t * cos(theta_i) - eta_i * cos(theta_t)) / (eta_t * cos(theta_i) + eta_i * cos(theta_t));
+//    r_perp = (eta_i * cos(theta_i) - eta_t * cos(theta_t)) / (eta_i * cos(theta_i) + eta_t * cos(theta_t));
+//    double Fr = 0.5 * (r_para*r_para + r_perp*r_perp);
+//    return Spectrum(1,1,1) * ((eta_t*eta_t*(1-Fr)) /(abs_cos_theta(wi) * eta_i*eta_i));
+//  } else if (isReflection(wo, wi)) {
+//    return Spectrum(1,1,1) * (1/abs_cos_theta(wi));
+//  }
+
   return Spectrum();
 }
 
 Spectrum GlassBSDF::sample_f(const Vector3D& wo, Vector3D* wi, float* pdf) {
-  // TODO (PathTracer):
-  // Compute Fresnel coefficient and either reflect or refract based on it.
+  bool is_refraction = refract(wo, wi, ior);
+  if (!is_refraction) {
+    // total internal reflection
+    *pdf = 1;
+    return Spectrum(1,1,1) * (1/abs_cos_theta(*wi));
+  } else {
+    double r_para, r_perp;
+    double eta_i = 1.0,
+           eta_t = ior;
+    if (wo.z < 0) std::swap(eta_i, eta_t);
+    double theta_i = abs_cos_theta(wo);
+    double theta_t = abs_cos_theta(*wi);
+    r_para = (eta_i * cos(theta_t) - eta_t * cos(theta_i)) / (eta_i * cos(theta_t) + eta_t * cos(theta_i));
+    r_perp = (eta_t * cos(theta_t) - eta_i * cos(theta_i)) / (eta_i * cos(theta_i) + eta_t * cos(theta_t));
+    double Fr = 0.5 * (r_para*r_para + r_perp*r_perp);
 
-  return Spectrum();
+    double rr = randDouble();
+    if (rr > Fr) {
+      // refraction
+      *pdf = 1 - Fr;
+      return Spectrum(1,1,1) * ((eta_i*eta_i*(1-Fr)) /(abs_cos_theta(*wi) * eta_t*eta_t));
+    } else {
+      // reflection
+      *pdf = Fr;
+      reflect(wo, wi);
+      return Spectrum(1,1,1) * (Fr/abs_cos_theta(*wi));
+    }
+  }
 }
 
 void BSDF::reflect(const Vector3D& wo, Vector3D* wi) {
@@ -112,14 +150,56 @@ void BSDF::reflect(const Vector3D& wo, Vector3D* wi) {
 }
 
 bool BSDF::refract(const Vector3D& wo, Vector3D* wi, float ior) {
-  // TODO (PathTracer):
   // Use Snell's Law to refract wo surface and store result ray in wi.
   // Return false if refraction does not occur due to total internal reflection
   // and true otherwise. When dot(wo,n) is positive, then wo corresponds to a
   // ray entering the surface through vacuum.
+  double eta_i = 1.0,
+         eta_t = (double)ior;
+  if (wo.z < 0) std::swap(eta_i, eta_t);
 
+  double theta_i = acos(abs(wo.z));
+  // check total internal reflection
+  if (eta_t < eta_i){
+    double critical_angle = asin(eta_t / eta_i);
+    if (theta_i >= critical_angle) {
+      reflect(wo, wi);
+      return false;
+    }
+  }
 
+  // refraction
+  double r = eta_i / eta_t;
+  double theta_t = asin(r * sin(theta_i));
+  double z = cos(theta_t);
+  double sin_theta_i = sin(theta_i);
+  double cos_phi = (sin_theta_i == 0.0 ? 0 : wo.x/sin_theta_i);
+  double sin_phi = (sin_theta_i == 0.0 ? 0 : wo.y/sin_theta_i);
+  if (wo.z > 0) z = -z;
+  *wi = Vector3D(
+    sin(theta_t) * cos(acos(cos_phi) + PI),
+    sin(theta_t) * sin(asin(sin_phi) + PI),
+    z
+  );
   return true;
+}
+
+bool BSDF::isReflection(const Vector3D& wo, const Vector3D& wi) {
+  Vector3D w;
+  reflect(wo, &w);
+  return abs(w.x - wi.x) < EPS_D
+    && abs(w.y - wi.y) < EPS_D
+    && abs(w.z - wi.z) < EPS_D;
+}
+
+bool BSDF::isRefraction(const Vector3D& wo, const Vector3D& wi, double ior) {
+  Vector3D w;
+  bool res = refract(wo, &w, ior);
+  if (!res) return false;
+
+  return abs(w.x - wi.x) < EPS_D
+    && abs(w.y - wi.y) < EPS_D
+    && abs(w.z - wi.z) < EPS_D;
 }
 
 // Emission BSDF //

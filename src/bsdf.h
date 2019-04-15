@@ -98,6 +98,10 @@ class BSDF {
   virtual bool refract(const Vector3D& wo, Vector3D* wi, float ior);
 
   Spectrum rasterize_color;
+
+protected:
+  bool isReflection(const Vector3D& wo, const Vector3D& wi);
+  bool isRefraction(const Vector3D& wo, const Vector3D& wi, double ior);
 };  // class BSDF
 
 /**

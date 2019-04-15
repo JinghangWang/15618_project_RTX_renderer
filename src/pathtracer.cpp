@@ -404,7 +404,6 @@ void PathTracer::key_press(int key) {
 
 
 Spectrum PathTracer::trace_ray(const Ray &r) {
-  // log first bounce
   Intersection isect;
   if (!bvh->intersect(r, &isect)) {
 // log ray miss
@@ -418,10 +417,6 @@ Spectrum PathTracer::trace_ray(const Ray &r) {
     return Spectrum(0, 0, 0);
   }
 
-  // trace original ray hits
-  if (r.depth == 0) {
-//    log_ray_hit(r, isect.t);
-  }
 // log ray hit
 #ifdef ENABLE_RAY_LOGGING
   log_ray_hit(r, isect.t);
@@ -503,13 +498,11 @@ Spectrum PathTracer::trace_ray(const Ray &r) {
     // surface type -- see BSDF::sample_f()
     Vector3D w_in;
     float pdf, terminationP;
-    isect.bsdf->sample_f(w_out, &w_in, &pdf);
+    const Spectrum f = isect.bsdf->sample_f(w_out, &w_in, &pdf);
     pdf = clamp(pdf, 0, 1);
 
     // (2) potentially terminate path (using Russian roulette)
-    const Spectrum f = isect.bsdf->f(w_out, w_in);
-    double cos_theta = w_in.z;
-    assert(cos_theta >= 0);
+    double cos_theta = abs(w_in.z);
     terminationP = (double)1.f - f.illum()*cos_theta/pdf;
 //    terminationP = (double)1.f - f.illum();
     terminationP = clamp(terminationP, 0, 1);
@@ -539,6 +532,7 @@ Spectrum PathTracer::raytrace_pixel(size_t x, size_t y) {
   // normalize to [0, 1] x [0, 1] screen space
   int num_samples = ns_aa;
   if (num_samples == 1) {
+//    return raytrace_sample(0.60,0.35);
     return raytrace_sample(
             (x + 0.5) / sampleBuffer.w,
             (y + 0.5) / sampleBuffer.h

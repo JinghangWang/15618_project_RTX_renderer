@@ -24,7 +24,12 @@ bool Sphere::test(const Ray& r, double& t1, double& t2) const {
   } else {
     t1 = (-b - sqrt(test)) / (2*a);
     t2 = (-b + sqrt(test)) / (2*a);
-    assert(t1 < t2);
+    if (t1 > t2){
+      cout << t1 << ", " << t2 << endl;
+      std::swap(t1, t2);
+      abort();
+    }
+//    assert(t1 < t2);
   }
   return true;
 }
