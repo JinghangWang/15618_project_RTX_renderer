@@ -142,7 +142,7 @@ Ray Camera::generate_ray(double x, double y) const {
   Matrix4x4 trans = getTransformationCameraToWorld();
   Vector4D trans_camera = trans * camera;
   Vector4D trans_direction = trans * direction;
-  return Ray(trans_camera.to3D(), trans_direction.to3D());
+  return Ray(trans_camera.to3D(), trans_direction.to3D().unit());
 }
 
 }  // namespace CMU462

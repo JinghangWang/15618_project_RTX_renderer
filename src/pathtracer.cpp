@@ -408,7 +408,7 @@ Spectrum PathTracer::trace_ray(const Ray &r) {
   if (!bvh->intersect(r, &isect)) {
 // log ray miss
 #ifdef ENABLE_RAY_LOGGING
-//    log_ray_miss(r);
+    log_ray_miss(r);
 #endif
 
     // TODO (PathTracer):
@@ -535,7 +535,7 @@ Spectrum PathTracer::raytrace_pixel(size_t x, size_t y) {
   // normalize to [0, 1] x [0, 1] screen space
   int num_samples = ns_aa;
   if (num_samples == 1) {
-//    return raytrace_sample(0.60,0.35);
+//    return raytrace_sample(0.6,0.5);
     return raytrace_sample(
             (x + 0.5) / sampleBuffer.w,
             (y + 0.5) / sampleBuffer.h

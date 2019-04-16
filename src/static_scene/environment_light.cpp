@@ -56,9 +56,15 @@ Spectrum EnvironmentLight::sample_L(const Vector3D& p, Vector3D* wi,
                                     float* distToLight, float* pdf) const {
   double x1 = randDouble(),
          x2 = randDouble();
-  size_t x, y;
+
   double theta, phi;
-  
+//  double x,y,z;
+//  x1 = x2 * 2 - 1;
+//  x = sqrt(1-x1*x1)*cos(2*PI*x2);
+//  y = sqrt(1-x1*x1)*sin(2*PI*x2);
+//  z = x1;
+//  transformCoordinate(Vector3D(x,y,z), theta, phi);
+  size_t x, y;
   size_t start = 0, end = height, mid;
   while (p_theta_cdf[start] < x1 && start < end - 1) {
     mid = (start + end) / 2;
@@ -87,18 +93,17 @@ Spectrum EnvironmentLight::sample_L(const Vector3D& p, Vector3D* wi,
   if (x > 0) {
     cond_p -= p_phi_cond_theta[x - 1 + y * width];
   }
-  theta = (double)y / height *PI;
+  theta = (double)y / height * PI;
   phi = (double)x / width * 2 * PI;
-  *pdf = cond_p * p_theta[theta];
+  *pdf = cond_p * p_theta[y] * width * height * sin(theta);
   *wi = Vector3D(cos(theta), sin(theta) * cos(phi), sin(theta)*sin(phi));
 
-//  std:: cout << theta << ", " << phi << std::endl;
   return getSample(theta, phi);
 }
 
 Spectrum EnvironmentLight::sample_dir(const Ray& r) const {
   double theta, phi;
-  transformCoordinate(r.d, theta, phi);
+  transformCoordinate(r.d.unit(), theta, phi);
   return getSample(theta, phi);
 }
 
@@ -115,7 +120,7 @@ Spectrum EnvironmentLight::getSample(double theta, double phi) const {
   Spectrum s_ll, s_lr, s_ul, s_ur;
   s_ll = envMap->data[x_l + width*y_l];
   s_lr = envMap->data[x_h + width*y_l];
-  // hemisphere wrapping
+  // sphere wrapping
   if (y_h == height) {
     s_ul = envMap->data[x_l + width/2 + width*y_l];
     s_ur = envMap->data[x_h + width/2 + width*y_l];
@@ -135,8 +140,12 @@ void EnvironmentLight::transformCoordinate(const Vector3D& w, double& theta, dou
   double sin_theta = sin(abs(theta));
   double cos_phi = (sin_theta == 0.0 ? 0 : w.x/sin_theta);
   phi = acos(cos_phi);
-  if (w.z < 0) phi = (-phi + 2*PI);
-  phi = fmod(phi - PI /2 , 2*PI);
+  if (isnan(phi)) {
+    std::cout << "w norm: " << w.norm() << ", cos_phi" << cos_phi << std::endl;
+  }
+  if (w.z < 0) phi = fmod(-phi + 2*PI, 2*PI);
+//  phi = fmod(phi, 2*PI);
+  phi = fmod(phi + 1.5 * PI , 2*PI);
 }
 
 }  // namespace StaticScene

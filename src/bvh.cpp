@@ -173,10 +173,11 @@ void BVHAccel::buildBVHRecursively(BVHNode* root, size_t max_leaf_size) {
       break;
     }
     default:
-      cout << "No partition is found!" << endl;
-      for (auto i = start; i < end; ++i) {
-        cout << primitives[i]->get_bbox() << endl;
-      }
+//      cout << "No partition is found!" << endl;
+//      for (auto i = start; i < end; ++i) {
+//        cout << primitives[i]->get_bbox() << endl;
+//      }
+      break;
   }
 
 //  cout << l->range << " " << r->range << endl;
