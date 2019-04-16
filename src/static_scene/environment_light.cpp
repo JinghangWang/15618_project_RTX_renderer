@@ -17,7 +17,6 @@ EnvironmentLight::EnvironmentLight(const HDRImageBuffer* envMap)
   for (auto j = 0; j < height; ++j) {
     for (auto i = 0; i < width; ++i) {
       double theta = (double)j / height * PI;
-      double phi = (double)i / width * 2*PI;
       double L = envMap->data[i + j*width].illum() * sin(theta);
       p_theta_phi[i + j*width] = L;
       total +=L;
@@ -89,7 +88,7 @@ Spectrum EnvironmentLight::sample_L(const Vector3D& p, Vector3D* wi,
   }
   theta = (double)y / height * PI;
   phi = (double)x / width * 2 * PI;
-  *pdf = cond_p * p_theta[y] * width * height * sin(theta);
+  *pdf = cond_p * p_theta[y] * width * height * sin(theta)/(4*PI);
   *wi = Vector3D(cos(theta), sin(theta) * cos(phi), sin(theta)*sin(phi));
 
   return getSample(theta, phi);
