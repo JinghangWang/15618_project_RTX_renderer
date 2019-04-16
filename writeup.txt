@@ -1,11 +1,13 @@
 AndrewID: jinghanw
 
 Checkpoint:
-    task 1: implemented
-    task 2: implemented
-    task 3: implemented
-    task 4: implemented
+    task 1: fully implemented
+    task 2: fully implemented
+    task 3: fully implemented
+    task 4: fully implemented
+    task 5: fully implemented
+    task 6: fully implemented
+    task 7: fully implemented
 
 Documentation:
-    1. width and height of the image space is hard to locate (sampleBuffer)
-    2. cos_phi and sin_phi does not work as expected
+    1. width and height of the image space is hard to locate (sampleBuffer.w and height)
