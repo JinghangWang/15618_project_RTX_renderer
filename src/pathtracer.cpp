@@ -426,7 +426,6 @@ Spectrum PathTracer::trace_ray(const Ray &r) {
 #endif
   Spectrum L_out = isect.bsdf->get_emission();  // Le
 
-  // TODO (PathTracer):
   // Instead of initializing this value to a constant color, use the direct,
   // indirect lighting components calculated in the code below. The starter
   // code overwrites L_out by (.5,.5,.5) so that you can test your geometry
@@ -535,7 +534,6 @@ Spectrum PathTracer::raytrace_pixel(size_t x, size_t y) {
   // normalize to [0, 1] x [0, 1] screen space
   int num_samples = ns_aa;
   if (num_samples == 1) {
-//    return raytrace_sample(0.6,0.5);
     return raytrace_sample(
             (x + 0.5) / sampleBuffer.w,
             (y + 0.5) / sampleBuffer.h

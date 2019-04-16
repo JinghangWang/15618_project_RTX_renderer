@@ -58,12 +58,6 @@ Spectrum EnvironmentLight::sample_L(const Vector3D& p, Vector3D* wi,
          x2 = randDouble();
 
   double theta, phi;
-//  double x,y,z;
-//  x1 = x2 * 2 - 1;
-//  x = sqrt(1-x1*x1)*cos(2*PI*x2);
-//  y = sqrt(1-x1*x1)*sin(2*PI*x2);
-//  z = x1;
-//  transformCoordinate(Vector3D(x,y,z), theta, phi);
   size_t x, y;
   size_t start = 0, end = height, mid;
   while (p_theta_cdf[start] < x1 && start < end - 1) {
@@ -140,12 +134,8 @@ void EnvironmentLight::transformCoordinate(const Vector3D& w, double& theta, dou
   double sin_theta = sin(abs(theta));
   double cos_phi = (sin_theta == 0.0 ? 0 : w.x/sin_theta);
   phi = acos(cos_phi);
-  if (isnan(phi)) {
-    std::cout << "w norm: " << w.norm() << ", cos_phi" << cos_phi << std::endl;
-  }
   if (w.z < 0) phi = fmod(-phi + 2*PI, 2*PI);
-//  phi = fmod(phi, 2*PI);
-  phi = fmod(phi + 1.5 * PI , 2*PI);
+  phi = fmod(phi + 1.5 * PI , 2*PI); // rotation by PI/2 to match reference
 }
 
 }  // namespace StaticScene
