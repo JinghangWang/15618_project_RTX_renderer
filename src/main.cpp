@@ -31,6 +31,7 @@ void usage(const char* binaryName) {
   printf("  -m  <INT>        Maximum ray depth\n");
   printf("  -e  <PATH>       Path to environment map\n");
   printf("  -w  <PATH>       Run Pathtracer without GUI, save render to PATH\n");
+  printf("  -g  <1/0>        Run Pathtracer with GPU Ray Tracing");
   printf("  -h               Print this help message\n");
   printf("\n");
 }
@@ -75,7 +76,7 @@ int main(int argc, char** argv) {
   // get the options
   AppConfig config;
   int opt;
-  while ((opt = getopt(argc, argv, "s:l:t:m:e:w:h")) !=
+  while ((opt = getopt(argc, argv, "s:l:t:m:e:w:h:g")) !=
          -1) {  // for each option...
     switch (opt) {
       case 's':
@@ -97,6 +98,9 @@ int main(int argc, char** argv) {
         if(optarg != nullptr) {
           config.pathtracer_result_path = optarg;
         }
+        break;
+      case 'g':
+        config.pathtracer_use_gpu = static_cast<bool>(atoi(optarg));
         break;
       default:
         usage(argv[0]);

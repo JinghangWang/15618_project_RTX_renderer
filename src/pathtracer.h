@@ -64,7 +64,7 @@ class PathTracer {
   PathTracer(size_t ns_aa = 1, size_t max_ray_depth = 4,
              size_t ns_area_light = 1, size_t ns_diff = 1, size_t ns_glsy = 1,
              size_t ns_refr = 1, size_t num_threads = 1,
-             HDRImageBuffer* envmap = NULL);
+             HDRImageBuffer* envmap = NULL, bool use_gpu = false);
 
   /**
    * Destructor.
@@ -227,6 +227,7 @@ class PathTracer {
   size_t ns_diff;        ///< number of samples - diffuse surfaces
   size_t ns_glsy;        ///< number of samples - glossy surfaces
   size_t ns_refr;        ///< number of samples - refractive surfaces
+  bool use_gpu; /// whether to use gpu to render
 
   // Integration state //
 

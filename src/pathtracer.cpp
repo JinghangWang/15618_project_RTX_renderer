@@ -28,13 +28,14 @@ namespace CMU462 {
 
 PathTracer::PathTracer(size_t ns_aa, size_t max_ray_depth, size_t ns_area_light,
                        size_t ns_diff, size_t ns_glsy, size_t ns_refr,
-                       size_t num_threads, HDRImageBuffer *envmap) {
+                       size_t num_threads, HDRImageBuffer *envmap, bool use_gpu) {
   state = INIT, this->ns_aa = ns_aa;
   this->max_ray_depth = max_ray_depth;
   this->ns_area_light = ns_area_light;
   this->ns_diff = ns_diff;
   this->ns_glsy = ns_diff;
   this->ns_refr = ns_refr;
+  this->use_gpu = use_gpu;
 
 
   if (envmap) {
