@@ -76,7 +76,7 @@ int main(int argc, char** argv) {
   // get the options
   AppConfig config;
   int opt;
-  while ((opt = getopt(argc, argv, "s:l:t:m:e:w:h:g")) !=
+  while ((opt = getopt(argc, argv, "s:l:t:m:e:w:g:h")) !=
          -1) {  // for each option...
     switch (opt) {
       case 's':
