@@ -85,7 +85,9 @@ void PathTracer::set_scene(Scene *scene) {
   }
 
   this->scene = scene;
-  build_accel();
+  if (!this->use_gpu) {
+    build_accel();
+  }
 
   if (has_valid_configuration()) {
     state = READY;
@@ -181,9 +183,7 @@ void PathTracer::start_visualizing() {
   state = VISUALIZE;
 }
 
-void PathTracer::start_raytracing() {
-  if (state != READY) return;
-
+void PathTracer::do_raytracing_CPU() {
   rayLog.clear();
   workQueue.clear();
 
@@ -210,6 +210,16 @@ void PathTracer::start_raytracing() {
   fflush(stdout);
   for (int i = 0; i < numWorkerThreads; i++) {
     workerThreads[i] = new std::thread(&PathTracer::worker_thread, this);
+  }
+}
+
+void PathTracer::start_raytracing() {
+  if (state != READY) return;
+
+  if (this->use_gpu) {
+    do_raytracing_GPU();
+  } else {
+    do_raytracing_CPU();
   }
 }
 

@@ -196,6 +196,16 @@ class PathTracer {
   void worker_thread();
 
   /**
+   * Render with CPU
+   */
+  void do_raytracing_CPU();
+
+  /**
+   * Render with GPU
+   */
+  void do_raytracing_GPU();
+
+  /**
    * Log a ray miss.
    */
   void log_ray_miss(const Ray& r);

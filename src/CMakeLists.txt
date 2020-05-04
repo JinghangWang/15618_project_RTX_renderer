@@ -37,6 +37,7 @@ set(APPLICATION_SOURCE
     camera.cpp
     sampler.cpp
     pathtracer.cpp
+    pathtracerGPU.cpp
 
     # Animator
     timeline.cpp
