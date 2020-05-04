@@ -1,0 +1,1 @@
+/usr/bin/cc -fPIC   -fPIC -DM_PI=3.14159265358979323846  -shared -Wl,-soname,libglad.so -o ../../lib/libglad.so CMakeFiles/glad.dir/glad/glad.c.o -lGL -lGLU 

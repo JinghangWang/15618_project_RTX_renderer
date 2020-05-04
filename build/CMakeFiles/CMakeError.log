@@ -1,0 +1,76 @@
+Determining if the pthread_create exist failed with the following output:
+Change Dir: /home/frank/15618_project/build/CMakeFiles/CMakeTmp
+
+Run Build Command:"/usr/bin/make" "cmTC_bfb1d/fast"
+/usr/bin/make -f CMakeFiles/cmTC_bfb1d.dir/build.make CMakeFiles/cmTC_bfb1d.dir/build
+make[1]: Entering directory '/home/frank/15618_project/build/CMakeFiles/CMakeTmp'
+Building C object CMakeFiles/cmTC_bfb1d.dir/CheckSymbolExists.c.o
+/usr/bin/cc    -o CMakeFiles/cmTC_bfb1d.dir/CheckSymbolExists.c.o   -c /home/frank/15618_project/build/CMakeFiles/CMakeTmp/CheckSymbolExists.c
+Linking C executable cmTC_bfb1d
+/usr/bin/cmake -E cmake_link_script CMakeFiles/cmTC_bfb1d.dir/link.txt --verbose=1
+/usr/bin/cc      -rdynamic CMakeFiles/cmTC_bfb1d.dir/CheckSymbolExists.c.o  -o cmTC_bfb1d 
+CMakeFiles/cmTC_bfb1d.dir/CheckSymbolExists.c.o: In function `main':
+CheckSymbolExists.c:(.text+0x1b): undefined reference to `pthread_create'
+collect2: error: ld returned 1 exit status
+CMakeFiles/cmTC_bfb1d.dir/build.make:97: recipe for target 'cmTC_bfb1d' failed
+make[1]: *** [cmTC_bfb1d] Error 1
+make[1]: Leaving directory '/home/frank/15618_project/build/CMakeFiles/CMakeTmp'
+Makefile:126: recipe for target 'cmTC_bfb1d/fast' failed
+make: *** [cmTC_bfb1d/fast] Error 2
+
+File /home/frank/15618_project/build/CMakeFiles/CMakeTmp/CheckSymbolExists.c:
+/* */
+#include <pthread.h>
+
+int main(int argc, char** argv)
+{
+  (void)argv;
+#ifndef pthread_create
+  return ((int*)(&pthread_create))[argc];
+#else
+  (void)argc;
+  return 0;
+#endif
+}
+
+Determining if the function pthread_create exists in the pthreads failed with the following output:
+Change Dir: /home/frank/15618_project/build/CMakeFiles/CMakeTmp
+
+Run Build Command:"/usr/bin/make" "cmTC_94553/fast"
+/usr/bin/make -f CMakeFiles/cmTC_94553.dir/build.make CMakeFiles/cmTC_94553.dir/build
+make[1]: Entering directory '/home/frank/15618_project/build/CMakeFiles/CMakeTmp'
+Building C object CMakeFiles/cmTC_94553.dir/CheckFunctionExists.c.o
+/usr/bin/cc   -DCHECK_FUNCTION_EXISTS=pthread_create   -o CMakeFiles/cmTC_94553.dir/CheckFunctionExists.c.o   -c /usr/share/cmake-3.10/Modules/CheckFunctionExists.c
+Linking C executable cmTC_94553
+/usr/bin/cmake -E cmake_link_script CMakeFiles/cmTC_94553.dir/link.txt --verbose=1
+/usr/bin/cc  -DCHECK_FUNCTION_EXISTS=pthread_create    -rdynamic CMakeFiles/cmTC_94553.dir/CheckFunctionExists.c.o  -o cmTC_94553 -lpthreads 
+/usr/bin/ld: cannot find -lpthreads
+collect2: error: ld returned 1 exit status
+CMakeFiles/cmTC_94553.dir/build.make:97: recipe for target 'cmTC_94553' failed
+make[1]: *** [cmTC_94553] Error 1
+make[1]: Leaving directory '/home/frank/15618_project/build/CMakeFiles/CMakeTmp'
+Makefile:126: recipe for target 'cmTC_94553/fast' failed
+make: *** [cmTC_94553/fast] Error 2
+
+
+Determining if the function glXGetProcAddressEXT exists failed with the following output:
+Change Dir: /home/frank/15618_project/build/CMakeFiles/CMakeTmp
+
+Run Build Command:"/usr/bin/make" "cmTC_5b956/fast"
+/usr/bin/make -f CMakeFiles/cmTC_5b956.dir/build.make CMakeFiles/cmTC_5b956.dir/build
+make[1]: Entering directory '/home/frank/15618_project/build/CMakeFiles/CMakeTmp'
+Building C object CMakeFiles/cmTC_5b956.dir/CheckFunctionExists.c.o
+/usr/bin/cc   -DCHECK_FUNCTION_EXISTS=glXGetProcAddressEXT   -o CMakeFiles/cmTC_5b956.dir/CheckFunctionExists.c.o   -c /usr/share/cmake-3.10/Modules/CheckFunctionExists.c
+Linking C executable cmTC_5b956
+/usr/bin/cmake -E cmake_link_script CMakeFiles/cmTC_5b956.dir/link.txt --verbose=1
+/usr/bin/cc  -DCHECK_FUNCTION_EXISTS=glXGetProcAddressEXT    -rdynamic CMakeFiles/cmTC_5b956.dir/CheckFunctionExists.c.o  -o cmTC_5b956 /usr/lib/x86_64-linux-gnu/libGL.so 
+CMakeFiles/cmTC_5b956.dir/CheckFunctionExists.c.o: In function `main':
+CheckFunctionExists.c:(.text+0x10): undefined reference to `glXGetProcAddressEXT'
+collect2: error: ld returned 1 exit status
+CMakeFiles/cmTC_5b956.dir/build.make:98: recipe for target 'cmTC_5b956' failed
+make[1]: *** [cmTC_5b956] Error 1
+make[1]: Leaving directory '/home/frank/15618_project/build/CMakeFiles/CMakeTmp'
+Makefile:126: recipe for target 'cmTC_5b956/fast' failed
+make: *** [cmTC_5b956/fast] Error 2
+
+

@@ -1,0 +1,2 @@
+/usr/bin/ar qc ../../lib/libsutil_7_sdk.a  CMakeFiles/sutil_7_sdk.dir/Camera.cpp.o CMakeFiles/sutil_7_sdk.dir/GLDisplay.cpp.o CMakeFiles/sutil_7_sdk.dir/PPMLoader.cpp.o CMakeFiles/sutil_7_sdk.dir/Scene.cpp.o CMakeFiles/sutil_7_sdk.dir/sutil.cpp.o CMakeFiles/sutil_7_sdk.dir/Trackball.cpp.o
+/usr/bin/ranlib ../../lib/libsutil_7_sdk.a
