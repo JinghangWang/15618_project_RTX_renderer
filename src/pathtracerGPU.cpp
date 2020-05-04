@@ -1,9 +1,9 @@
 #include "pathtracer.h"
 
 /*** Optix ***/
-// #include <glad/glad.h>  // Needs to be included before gl_interop
+#include <glad/glad.h>  // Needs to be included before gl_interop
 
-// #include <cuda_gl_interop.h>
+#include <cuda_gl_interop.h>
 #include <cuda_runtime.h>
 
 #include <optix.h>
@@ -33,6 +33,7 @@
 #include <iostream>
 #include <sstream>
 #include <string>
+#include <assert.h>
 
 bool resize_dirty = false;
 
@@ -929,36 +930,52 @@ void cleanupState( PathTracerState& state )
 
 namespace CMU462 {
 
+void updateBuffer(const sutil::ImageBuffer& buffer, ImageBuffer& frame_buffer) {
+  auto width = frame_buffer.w;
+  auto height = frame_buffer.h;
+  memcpy(&frame_buffer.data[0], (unsigned char*)buffer.data, width * height * 4);
+}
+
 void PathTracer::do_raytracing_GPU() {
-  PathTracerState state;
-  state.params.width                             = 1024;
-  state.params.height                            = 1024;
-  sutil::CUDAOutputBufferType output_buffer_type = sutil::CUDAOutputBufferType::GL_INTEROP;
+  fprintf(stdout, "[PathTracer] Rendering... \n");
+  fflush(stdout);
+  Timer timer;
+  timer.start();
+
+
+  PathTracerState PTstate;
+  PTstate.params.width                             = frameBuffer.w;
+  PTstate.params.height                            = frameBuffer.h;
+  printf("%d %d\n", frameBuffer.w, frameBuffer.h);
+  sutil::CUDAOutputBufferType output_buffer_type = sutil::CUDAOutputBufferType::ZERO_COPY;
+
 
   initCameraState();
 
   //
   // Set up OptiX state
   //
-  createContext( state );
-  buildMeshAccel( state );
-  createModule( state );
-  createProgramGroups( state );
-  createPipeline( state );
-  createSBT( state );
-  initLaunchParams( state );
+  createContext( PTstate );
+  buildMeshAccel( PTstate );
+  createModule( PTstate );
+  createProgramGroups( PTstate );
+  createPipeline( PTstate );
+  createSBT( PTstate );
+  initLaunchParams( PTstate );
 
   //
   // Render body
   //
   sutil::CUDAOutputBuffer<uchar4> output_buffer(
           output_buffer_type,
-          state.params.width,
-          state.params.height
+          PTstate.params.width,
+          PTstate.params.height
           );
 
+  handleCameraUpdate( PTstate.params );
+  handleResize( output_buffer, PTstate.params );
   /*** launch rendering ***/
-  launchSubframe( output_buffer, state );
+  launchSubframe( output_buffer, PTstate );
 
   sutil::ImageBuffer buffer;
   buffer.data         = output_buffer.getHostPointer();
@@ -966,8 +983,18 @@ void PathTracer::do_raytracing_GPU() {
   buffer.height       = output_buffer.height();
   buffer.pixel_format = sutil::BufferImageFormat::UNSIGNED_BYTE4;
 
-  // TODO
-  // sutil::displayBufferFile( outfile.c_str(), buffer, false );
+  //
+  // Output to frameBuffer
+  //
+  assert(buffer.pixel_format == sutil::BufferImageFormat::UNSIGNED_BYTE4);
+  sutil::displayBufferFile("bufferfile.txt", buffer, false );
+  updateBuffer(buffer, this->frameBuffer);
+
+  timer.stop();
+  fprintf(stdout, "Done! (%.4fs)\n", timer.duration());
+  this->state = DONE;
+
+  cleanupState( PTstate );
 }
 
 }  // namespace CMU462

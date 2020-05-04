@@ -54,8 +54,12 @@ PathTracer::PathTracer(size_t ns_aa, size_t max_ray_depth, size_t ns_area_light,
   show_rays = true;
 
   imageTileSize = 32;
-  numWorkerThreads = num_threads;
-  workerThreads.resize(numWorkerThreads);
+  if (!use_gpu) {
+    numWorkerThreads = num_threads;
+    workerThreads.resize(numWorkerThreads);
+  } else {
+    numWorkerThreads = 0;
+  }
 
   tm_gamma = 2.2f;
   tm_level = 1.0f;
@@ -184,15 +188,6 @@ void PathTracer::start_visualizing() {
 }
 
 void PathTracer::do_raytracing_CPU() {
-  rayLog.clear();
-  workQueue.clear();
-
-  state = RENDERING;
-  continueRaytracing = true;
-  workerDoneCount = 0;
-
-  sampleBuffer.clear();
-  frameBuffer.clear();
   num_tiles_w = sampleBuffer.w / imageTileSize + 1;
   num_tiles_h = sampleBuffer.h / imageTileSize + 1;
   tile_samples.resize(num_tiles_w * num_tiles_h);
@@ -215,6 +210,16 @@ void PathTracer::do_raytracing_CPU() {
 
 void PathTracer::start_raytracing() {
   if (state != READY) return;
+
+  rayLog.clear();
+  workQueue.clear();
+
+  state = RENDERING;
+  continueRaytracing = true;
+  workerDoneCount = 0;
+
+  sampleBuffer.clear();
+  frameBuffer.clear();
 
   if (this->use_gpu) {
     do_raytracing_GPU();
