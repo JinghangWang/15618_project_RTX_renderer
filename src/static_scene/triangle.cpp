@@ -104,5 +104,13 @@ Vector3D Triangle::getCentroid() const {
   return (p0 + p1 + p2)/3;
 }
 
+std::vector<Vector3D> Triangle::getVertexPositions() const {
+  std::vector<Vector3D> vertices(3);
+  vertices[0] = mesh->positions[v1];
+  vertices[1] = mesh->positions[v2];
+  vertices[2] = mesh->positions[v3];
+  return vertices;
+}
+
 }  // namespace StaticScene
 }  // namespace CMU462

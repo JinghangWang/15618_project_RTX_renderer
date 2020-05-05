@@ -3,6 +3,7 @@
 
 #include "object.h"
 #include "primitive.h"
+#include <vector>
 
 namespace CMU462 {
 namespace StaticScene {
@@ -71,6 +72,11 @@ class Triangle : public Primitive {
    * Draw outline with OpenGL (for visualizer)
    */
   void drawOutline(const Color& c) const;
+
+  /**
+   * Return positiosn of three vertices
+   */
+  std::vector<Vector3D> getVertexPositions() const;
 
   Vector3D getCentroid() const;
 

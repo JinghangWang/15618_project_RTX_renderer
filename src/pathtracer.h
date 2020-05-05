@@ -206,6 +206,11 @@ class PathTracer {
   void do_raytracing_GPU();
 
   /**
+   * TODO
+   */
+  void collect_primitives();
+
+  /**
    * Log a ray miss.
    */
   void log_ray_miss(const Ray& r);

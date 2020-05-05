@@ -25,6 +25,10 @@
 #include <GLFW/glfw3.h>
 
 #include "optixPathTracer.h"
+#include "CMU462/vector3D.h"
+#include "static_scene/triangle.h"
+#include "static_scene/light.h"
+
 
 #include <array>
 #include <cstring>
@@ -34,6 +38,8 @@
 #include <sstream>
 #include <string>
 #include <assert.h>
+
+using namespace CMU462::StaticScene;
 
 bool resize_dirty = false;
 
@@ -66,7 +72,7 @@ typedef Record<MissData>     MissRecord;
 typedef Record<HitGroupData> HitGroupRecord;
 
 
-struct Vertex
+struct VertexPosition
 {
     float x, y, z, pad;
 };
@@ -116,10 +122,15 @@ struct PathTracerState
 //
 //------------------------------------------------------------------------------
 
-const int32_t TRIANGLE_COUNT = 32;
-const int32_t MAT_COUNT      = 4;
+// const int32_t TRIANGLE_COUNT = 32;
+int32_t MAT_COUNT      = 0;
 
-const static std::array<Vertex, TRIANGLE_COUNT* 3> g_vertices =
+std::vector<VertexPosition> g_vertices;
+std::vector<uint32_t> g_mat_indices;
+std::vector<float3> g_emission_colors;
+std::vector<float3> g_diffuse_colors;
+/*
+static std::array<VertexPosition, TRIANGLE_COUNT* 3> g_vertices =
 {  {
     // Floor  -- white lambert
     {    0.0f,    0.0f,    0.0f, 0.0f },
@@ -287,7 +298,7 @@ const std::array<float3, MAT_COUNT> g_diffuse_colors =
     { 0.80f, 0.05f, 0.05f },
     { 0.50f, 0.00f, 0.00f }
 } };
-
+*/
 
 //------------------------------------------------------------------------------
 //
@@ -494,12 +505,32 @@ static void context_log_cb( unsigned int level, const char* tag, const char* mes
 }
 
 
-void initCameraState()
+void initCameraState(CMU462::Camera* cmu_camera)
 {
-    camera.setEye( make_float3( 278.0f, 273.0f, -900.0f ) );
-    camera.setLookat( make_float3( 278.0f, 273.0f, 330.0f ) );
+    // camera.setEye( make_float3( 0, 0, 0 ) );
+    // camera.setLookat( make_float3( 0, 0, -100 ) );
+    // camera.setUp( make_float3( 0.0f, 1.0f, 0.0f ) );
+    // camera.setFovY( 28 );
+    // camera_changed = true;
+
+    // trackball.setCamera( &camera );
+    // trackball.setMoveSpeed( 10.0f );
+    // trackball.setReferenceFrame(
+    //         make_float3( 1.0f, 0.0f, 0.0f ),
+    //         make_float3( 0.0f, 0.0f, 1.0f ),
+    //         make_float3( 0.0f, 1.0f, 0.0f )
+    //         );
+    // trackball.setGimbalLock( true );
+
+    CMU462::Vector3D eye = cmu_camera->position();
+    float3 eye_pos = make_float3(eye.x, eye.y, eye.z);
+    CMU462::Vector3D target = cmu_camera->view_point();
+    float3 target_pos = make_float3(target.x, target.y, target.z);
+
+    camera.setEye( eye_pos );
+    camera.setLookat( target_pos );
     camera.setUp( make_float3( 0.0f, 1.0f, 0.0f ) );
-    camera.setFovY( 35.0f );
+    camera.setFovY( 28 );
     camera_changed = true;
 
     trackball.setCamera( &camera );
@@ -535,7 +566,7 @@ void buildMeshAccel( PathTracerState& state )
     //
     // copy mesh data to device
     //
-    const size_t vertices_size_in_bytes = g_vertices.size() * sizeof( Vertex );
+    const size_t vertices_size_in_bytes = g_vertices.size() * sizeof( VertexPosition );
     CUDA_CHECK( cudaMalloc( reinterpret_cast<void**>( &state.d_vertices ), vertices_size_in_bytes ) );
     CUDA_CHECK( cudaMemcpy(
                 reinterpret_cast<void*>( state.d_vertices ),
@@ -567,7 +598,7 @@ void buildMeshAccel( PathTracerState& state )
     OptixBuildInput triangle_input                           = {};
     triangle_input.type                                      = OPTIX_BUILD_INPUT_TYPE_TRIANGLES;
     triangle_input.triangleArray.vertexFormat                = OPTIX_VERTEX_FORMAT_FLOAT3;
-    triangle_input.triangleArray.vertexStrideInBytes         = sizeof( Vertex );
+    triangle_input.triangleArray.vertexStrideInBytes         = sizeof( VertexPosition );
     triangle_input.triangleArray.numVertices                 = static_cast<uint32_t>( g_vertices.size() );
     triangle_input.triangleArray.vertexBuffers               = &state.d_vertices;
     triangle_input.triangleArray.flags                       = triangle_input_flags;
@@ -936,6 +967,66 @@ void updateBuffer(const sutil::ImageBuffer& buffer, ImageBuffer& frame_buffer) {
   memcpy(&frame_buffer.data[0], (unsigned char*)buffer.data, width * height * 4);
 }
 
+std::vector<VertexPosition> padPositions(const std::vector<Vector3D> positions) {
+  std::vector<VertexPosition> padded_positions(3);
+
+  for (auto p: positions) {
+    VertexPosition pp;
+    pp.x = p.x;
+    pp.y = p.y;
+    pp.z = p.z;
+    pp.pad = 0.0f;
+    padded_positions.insert(padded_positions.end(), pp);
+  }
+  return padded_positions;
+}
+
+std::vector<VertexPosition> getAllVertexPositions(const std::vector<Primitive *> &obj_prims) {
+  std::vector<VertexPosition> vertices;
+  vertices.reserve(obj_prims.size() * 3);
+
+  for (Primitive* primitive : obj_prims) {
+    Triangle* triangle = static_cast<Triangle*>(primitive);
+    auto positions = triangle->getVertexPositions();
+    auto padded_positions = padPositions(positions);
+    vertices.insert(vertices.end(), padded_positions.begin(), padded_positions.end());
+  }
+  return vertices;
+}
+
+void PathTracer::collect_primitives() {
+  for (SceneObject *obj : scene->objects) {
+    const std::vector<Primitive *> &obj_prims = obj->get_primitives();
+    auto num_primitives = obj_prims.size();
+    g_vertices.reserve(g_vertices.size() +  num_primitives * 3);
+
+    // collect vertex positions
+    const std::vector<VertexPosition> vertices = getAllVertexPositions(obj_prims);
+    g_vertices.insert(g_vertices.end(), vertices.begin(), vertices.end());
+
+    // assign material index for all inserted triangles
+    uint32_t current_index = g_emission_colors.size();
+    std::vector<uint32_t> indices(num_primitives * 3, current_index);
+    g_mat_indices.reserve(g_vertices.size() + num_primitives * 3);
+    g_mat_indices.insert(g_mat_indices.end(), indices.begin(), indices.end());
+
+    // insert emission and diffuse colors
+    DiffuseBSDF* bsdf = static_cast<DiffuseBSDF*>(obj->get_bsdf());
+    Spectrum diffuse_spec = bsdf->f();
+    float3 diffuse = make_float3(diffuse_spec.r, diffuse_spec.g, diffuse_spec.b);
+    g_diffuse_colors.push_back(diffuse);
+
+    Spectrum emission_spec = bsdf->get_emission();
+    float3 emission = make_float3(emission_spec.r, emission_spec.g, emission_spec.b);
+    printf("emission: %f, %f, %f\n", emission.x, emission.y, emission.z);
+    printf("diffuse: %f, %f, %f\n", diffuse.x, diffuse.y, diffuse.z);
+    g_emission_colors.push_back(emission);
+  }
+
+  MAT_COUNT = g_emission_colors.size();
+  printf("%f, %f, %f\n", g_vertices[10].x, g_vertices[10].y, g_vertices[10].z);
+}
+
 void PathTracer::do_raytracing_GPU() {
   fprintf(stdout, "[PathTracer] Rendering... \n");
   fflush(stdout);
@@ -946,16 +1037,18 @@ void PathTracer::do_raytracing_GPU() {
   PathTracerState PTstate;
   PTstate.params.width                             = frameBuffer.w;
   PTstate.params.height                            = frameBuffer.h;
-  printf("%d %d\n", frameBuffer.w, frameBuffer.h);
   sutil::CUDAOutputBufferType output_buffer_type = sutil::CUDAOutputBufferType::ZERO_COPY;
 
 
-  initCameraState();
+  initCameraState(this->camera);
 
   //
   // Set up OptiX state
   //
   createContext( PTstate );
+
+  this->collect_primitives();
+  
   buildMeshAccel( PTstate );
   createModule( PTstate );
   createProgramGroups( PTstate );
