@@ -404,11 +404,7 @@ void initLaunchParams( PathTracerState& state )
     state.params.samples_per_launch = samples_per_launch;
     state.params.subframe_index     = 0u;
 
-    state.params.light.emission = make_float3( 15.0f, 15.0f, 5.0f );
-    state.params.light.corner   = make_float3( 343.0f, 548.5f, 227.0f );
-    state.params.light.v1       = make_float3( 0.0f, 0.0f, 105.0f );
-    state.params.light.v2       = make_float3( -130.0f, 0.0f, 0.0f );
-    state.params.light.normal   = normalize( cross( state.params.light.v1, state.params.light.v2 ) );
+ 
     state.params.handle         = state.gas_handle;
 
     CUDA_CHECK( cudaStreamCreate( &state.stream ) );
@@ -968,7 +964,8 @@ void updateBuffer(const sutil::ImageBuffer& buffer, ImageBuffer& frame_buffer) {
 }
 
 std::vector<VertexPosition> padPositions(const std::vector<Vector3D> positions) {
-  std::vector<VertexPosition> padded_positions(3);
+  std::vector<VertexPosition> padded_positions;
+  padded_positions.reserve(3);
 
   for (auto p: positions) {
     VertexPosition pp;
@@ -998,7 +995,7 @@ void PathTracer::collect_primitives() {
   for (SceneObject *obj : scene->objects) {
     const std::vector<Primitive *> &obj_prims = obj->get_primitives();
     auto num_primitives = obj_prims.size();
-    g_vertices.reserve(g_vertices.size() +  num_primitives * 3);
+    g_vertices.reserve(g_vertices.size() + num_primitives * 3);
 
     // collect vertex positions
     const std::vector<VertexPosition> vertices = getAllVertexPositions(obj_prims);
@@ -1006,26 +1003,44 @@ void PathTracer::collect_primitives() {
 
     // assign material index for all inserted triangles
     uint32_t current_index = g_emission_colors.size();
-    std::vector<uint32_t> indices(num_primitives * 3, current_index);
-    g_mat_indices.reserve(g_vertices.size() + num_primitives * 3);
+    std::vector<uint32_t> indices(num_primitives, current_index);
+    g_mat_indices.reserve(g_mat_indices.size() + num_primitives);
     g_mat_indices.insert(g_mat_indices.end(), indices.begin(), indices.end());
 
     // insert emission and diffuse colors
     DiffuseBSDF* bsdf = static_cast<DiffuseBSDF*>(obj->get_bsdf());
-    Spectrum diffuse_spec = bsdf->f();
+    Spectrum diffuse_spec = bsdf->get_albedo();
     float3 diffuse = make_float3(diffuse_spec.r, diffuse_spec.g, diffuse_spec.b);
     g_diffuse_colors.push_back(diffuse);
 
     Spectrum emission_spec = bsdf->get_emission();
     float3 emission = make_float3(emission_spec.r, emission_spec.g, emission_spec.b);
-    printf("emission: %f, %f, %f\n", emission.x, emission.y, emission.z);
-    printf("diffuse: %f, %f, %f\n", diffuse.x, diffuse.y, diffuse.z);
     g_emission_colors.push_back(emission);
   }
 
   MAT_COUNT = g_emission_colors.size();
-  printf("%f, %f, %f\n", g_vertices[10].x, g_vertices[10].y, g_vertices[10].z);
 }
+
+void setupLight(PathTracerState& state, SceneLight *scene_light) {
+  AreaLight* light = static_cast<AreaLight*>(scene_light);
+  CMU462::Spectrum radiance = light->get_radiance();
+  Vector3D position = light->get_position();
+  Vector3D dim_x = light->get_dim_x();
+  Vector3D dim_y = light->get_dim_y();
+  float area = light->get_area();
+
+  state.params.light.emission = make_float3( radiance.r, radiance.g, radiance.b );
+  state.params.light.corner   = make_float3( position.x, position.y, position.z );
+  float3 v1 = make_float3( dim_x.x, dim_x.y, dim_x.z );
+  float3 v2 = make_float3( dim_y.x, dim_y.y, dim_y.z );
+  float ratio = 0.7;
+  state.params.light.v1 = v1 * ratio;      
+  state.params.light.v2 = v2 * ratio;
+
+
+  state.params.light.normal = normalize( cross( state.params.light.v1, state.params.light.v2 ) );
+}
+
 
 void PathTracer::do_raytracing_GPU() {
   fprintf(stdout, "[PathTracer] Rendering... \n");
@@ -1033,22 +1048,22 @@ void PathTracer::do_raytracing_GPU() {
   Timer timer;
   timer.start();
 
-
+  //
+  // Set up OptiX state
+  //
   PathTracerState PTstate;
   PTstate.params.width                             = frameBuffer.w;
   PTstate.params.height                            = frameBuffer.h;
   sutil::CUDAOutputBufferType output_buffer_type = sutil::CUDAOutputBufferType::ZERO_COPY;
 
-
   initCameraState(this->camera);
-
-  //
-  // Set up OptiX state
-  //
   createContext( PTstate );
-
   this->collect_primitives();
-  
+  setupLight( PTstate, this->scene->lights[0] );
+  samples_per_launch = this->ns_aa;
+
+
+
   buildMeshAccel( PTstate );
   createModule( PTstate );
   createProgramGroups( PTstate );
@@ -1056,9 +1071,7 @@ void PathTracer::do_raytracing_GPU() {
   createSBT( PTstate );
   initLaunchParams( PTstate );
 
-  //
-  // Render body
-  //
+
   sutil::CUDAOutputBuffer<uchar4> output_buffer(
           output_buffer_type,
           PTstate.params.width,
@@ -1067,7 +1080,18 @@ void PathTracer::do_raytracing_GPU() {
 
   handleCameraUpdate( PTstate.params );
   handleResize( output_buffer, PTstate.params );
+
+  timer.stop();
+  fprintf(stdout, "[PathTracer] GPU setup (%.4fs)\n", timer.duration());
+  fflush(stdout);
+
+  //
+  // Render body
+  //
   /*** launch rendering ***/
+  fprintf(stdout, "[PathTracer] GPU Rendering... \n");
+  fflush(stdout);
+  timer.start();
   launchSubframe( output_buffer, PTstate );
 
   sutil::ImageBuffer buffer;
@@ -1080,7 +1104,7 @@ void PathTracer::do_raytracing_GPU() {
   // Output to frameBuffer
   //
   assert(buffer.pixel_format == sutil::BufferImageFormat::UNSIGNED_BYTE4);
-  sutil::displayBufferFile("bufferfile.txt", buffer, false );
+  // sutil::displayBufferFile("bufferfile.txt", buffer, false );
   updateBuffer(buffer, this->frameBuffer);
 
   timer.stop();

@@ -35,7 +35,6 @@ Mesh::Mesh(Collada::PolymeshInfo &polyMesh, const Matrix4x4 &transform) {
   mesh.build(polygons, vertices);
   if (polyMesh.material) {
     bsdf = polyMesh.material->bsdf;
-    printf("!!!custom material\n");
   } else {
     //      bsdf = new DiffuseBSDF(Spectrum(0.5f,0.5f,0.5f));
     bsdf = new DiffuseBSDF(Spectrum(1., 1., 1.));

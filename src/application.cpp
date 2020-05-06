@@ -573,6 +573,7 @@ DynamicScene::SceneLight *Application::init_light(LightInfo &light,
     case Collada::LightType::DIRECTIONAL:
       return new DynamicScene::DirectionalLight(light, transform);
     case Collada::LightType::AREA:
+      printf("area light\n");
       return new DynamicScene::AreaLight(light, transform);
     case Collada::LightType::POINT:
       return new DynamicScene::PointLight(light, transform);

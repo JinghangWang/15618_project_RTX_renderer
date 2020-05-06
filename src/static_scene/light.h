@@ -85,6 +85,12 @@ class AreaLight : public SceneLight {
             const Vector3D& dim_x, const Vector3D& dim_y);
   Spectrum sample_L(const Vector3D& p, Vector3D* wi, float* distToLight,
                     float* pdf) const;
+  Spectrum get_radiance() const { return radiance; }
+  Vector3D get_position() const { return position; }
+  Vector3D get_dim_x() const { return dim_x; }
+  Vector3D get_dim_y() const { return dim_y; }
+  float get_area() const {return area; }
+
   bool is_delta_light() const { return false; }
 
  private:

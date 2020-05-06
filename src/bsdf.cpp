@@ -38,8 +38,8 @@ Spectrum DiffuseBSDF::f(const Vector3D& wo, const Vector3D& wi) {
   return albedo * (1.0 / PI);
 }
 
-Spectrum DiffuseBSDF::f(){
-  return albedo * (1.0 / PI);
+Spectrum DiffuseBSDF::get_albedo(){
+  return albedo;
 }
 
 Spectrum DiffuseBSDF::sample_f(const Vector3D& wo, Vector3D* wi, float* pdf) {

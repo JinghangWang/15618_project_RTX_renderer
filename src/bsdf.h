@@ -112,7 +112,7 @@ class DiffuseBSDF : public BSDF {
   DiffuseBSDF(const Spectrum& a) : albedo(a) { rasterize_color = a; }
 
   Spectrum f(const Vector3D& wo, const Vector3D& wi);
-  Spectrum f();
+  Spectrum get_albedo();
   Spectrum sample_f(const Vector3D& wo, Vector3D* wi, float* pdf);
   Spectrum get_emission() const { return Spectrum(); }
   bool is_delta() const { return false; }
